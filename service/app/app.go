@@ -13,3 +13,14 @@ type Adapters struct {
 type RegistrationRepository interface {
 	Save(registration domain.Registration) error
 }
+
+type Application struct {
+	Commands Commands
+	Queries  Queries
+}
+
+type Commands struct {
+}
+
+type Queries struct {
+}
