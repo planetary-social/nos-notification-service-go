@@ -5,5 +5,7 @@ type APNSToken struct {
 }
 
 func NewAPNSToken(s string) (APNSToken, error) {
+	// todo validate
+
 	return APNSToken{s}, nil
 }

@@ -20,6 +20,7 @@ type Application struct {
 }
 
 type Commands struct {
+	SaveRegistration SaveRegistrationHandler
 }
 
 type Queries struct {

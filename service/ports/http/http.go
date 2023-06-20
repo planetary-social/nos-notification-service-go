@@ -8,16 +8,21 @@ import (
 
 	"github.com/boreq/errors"
 	"github.com/gorilla/websocket"
+	"github.com/nbd-wtf/go-nostr"
+	"github.com/planetary-social/go-notification-service/service/app"
 	"github.com/planetary-social/go-notification-service/service/config"
+	"github.com/planetary-social/go-notification-service/service/domain"
 )
 
 type Server struct {
 	config config.Config
+	app    app.Application
 }
 
-func NewServer(config config.Config) Server {
+func NewServer(config config.Config, app app.Application) Server {
 	return Server{
 		config: config,
+		app:    app,
 	}
 }
 
@@ -67,6 +72,33 @@ func (s *Server) handleConnection(conn *websocket.Conn) error {
 			return errors.Wrap(err, "error reading the websocket message")
 		}
 
-		fmt.Printf("%x\n", messageBytes)
+		fmt.Printf("Received websocket message: %s\n", string(messageBytes))
+
+		message := nostr.ParseMessage(messageBytes)
+		if message == nil {
+			return errors.New("failed to parse the message")
+		}
+
+		switch v := message.(type) {
+		case *nostr.EventEnvelope:
+			event, err := domain.NewEventFromEnvelope(*v)
+			if err != nil {
+				return errors.Wrap(err, "error creating an event")
+			}
+
+			registration, err := domain.NewRegistrationFromEvent(event)
+			if err != nil {
+				return errors.Wrap(err, "error creating a registration")
+			}
+
+			cmd := app.NewSaveRegistration(
+				event.PubKey(),
+				registration,
+			)
+
+			if err := s.app.Commands.SaveRegistration.Handle(cmd); err != nil {
+				return errors.Wrap(err, "error handling the registration command")
+			}
+		}
 	}
 }

@@ -5,5 +5,7 @@ type PublicKey struct {
 }
 
 func NewPublicKey(s string) (PublicKey, error) {
+	// todo validate
+
 	return PublicKey{s}, nil
 }
