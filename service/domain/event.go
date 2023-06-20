@@ -12,8 +12,8 @@ type Event struct {
 	content []byte
 }
 
-func NewEventFromEnvelope(envelope nostr.EventEnvelope) (Event, error) {
-	ok, err := envelope.CheckSignature()
+func NewEvent(libevent nostr.Event) (Event, error) {
+	ok, err := libevent.CheckSignature()
 	if err != nil {
 		return Event{}, errors.Wrap(err, "error checking signature")
 	}
@@ -22,14 +22,14 @@ func NewEventFromEnvelope(envelope nostr.EventEnvelope) (Event, error) {
 		return Event{}, errors.New("invalid signature")
 	}
 
-	pubKey, err := NewPublicKey(envelope.PubKey)
+	pubKey, err := NewPublicKey(libevent.PubKey)
 	if err != nil {
 		return Event{}, errors.Wrap(err, "error creating a pub key")
 	}
 
 	return Event{
 		pubKey:  pubKey,
-		content: []byte(envelope.Content),
+		content: []byte(libevent.Content),
 	}, nil
 }
 

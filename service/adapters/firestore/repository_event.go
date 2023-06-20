@@ -17,6 +17,6 @@ func NewEventRepository(client *firestore.Client, tx *firestore.Transaction) *Ev
 }
 
 func (e EventRepository) Save(relay domain.RelayAddress, event domain.Event) error {
-	fmt.Println("saving", relay, event)
+	fmt.Println("saving", relay, string(event.Content()))
 	return nil
 }

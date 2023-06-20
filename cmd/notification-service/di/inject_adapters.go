@@ -29,7 +29,3 @@ var firestoreTxAdaptersSet = wire.NewSet(
 	firestore.NewEventRepository,
 	wire.Bind(new(app.EventRepository), new(*firestore.EventRepository)),
 )
-
-var adaptersSet = wire.NewSet(
-// adapters.NewCurrentTimeProvider,
-)

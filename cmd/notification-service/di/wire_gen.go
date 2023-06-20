@@ -40,7 +40,8 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 		Queries:  queries,
 	}
 	server := http.NewServer(configConfig, application)
-	service := NewService(application, server)
+	downloader := app.NewDownloader(transactionProvider)
+	service := NewService(application, server, downloader)
 	return service, func() {
 	}, nil
 }

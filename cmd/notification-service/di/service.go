@@ -10,17 +10,20 @@ import (
 )
 
 type Service struct {
-	app    app.Application
-	server http.Server
+	app        app.Application
+	server     http.Server
+	downloader *app.Downloader
 }
 
 func NewService(
 	app app.Application,
 	server http.Server,
+	downloader *app.Downloader,
 ) Service {
 	return Service{
-		app:    app,
-		server: server,
+		app:        app,
+		server:     server,
+		downloader: downloader,
 	}
 }
 
@@ -38,6 +41,11 @@ func (s Service) Run(ctx context.Context) error {
 	runners++
 	go func() {
 		errCh <- s.server.ListenAndServe(ctx)
+	}()
+
+	runners++
+	go func() {
+		errCh <- s.downloader.Run(ctx)
 	}()
 
 	var err error

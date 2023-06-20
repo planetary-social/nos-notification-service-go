@@ -2,6 +2,7 @@ package domain
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/boreq/errors"
 	"github.com/planetary-social/go-notification-service/internal"
@@ -111,8 +112,11 @@ type RelayAddress struct {
 }
 
 func NewRelayAddress(s string) (RelayAddress, error) {
-	// todo validate
+	if !strings.HasPrefix(s, "ws://") && !strings.HasPrefix(s, "wss://") {
+		return RelayAddress{}, errors.New("invalid protocol")
+	}
 
+	// todo validate
 	return RelayAddress{s: s}, nil
 }
 

@@ -2,6 +2,7 @@ package firestore
 
 import (
 	"context"
+	"encoding/hex"
 
 	"cloud.google.com/go/firestore"
 	"github.com/boreq/errors"
@@ -61,7 +62,7 @@ func (r *RegistrationRepository) saveUnderTokens(registration domain.Registratio
 		}
 
 		for _, relayAddress := range pubKeyWithRelays.Relays() {
-			relayDocPath := publicKeyDocPath.Collection(collectionAPNSTokensPublicKeysRelays).Doc(relayAddress.String())
+			relayDocPath := publicKeyDocPath.Collection(collectionAPNSTokensPublicKeysRelays).Doc(r.relayAddressAsKey(relayAddress))
 			relayDocData := map[string]any{
 				"address": relayAddress.String(),
 			}
@@ -77,7 +78,7 @@ func (r *RegistrationRepository) saveUnderTokens(registration domain.Registratio
 func (r *RegistrationRepository) saveUnderRelays(registration domain.Registration) error {
 	for _, pubKeyWithRelays := range registration.PublicKeys() {
 		for _, relayAddress := range pubKeyWithRelays.Relays() {
-			relayDocPath := r.client.Collection(collectionRelays).Doc(relayAddress.String())
+			relayDocPath := r.client.Collection(collectionRelays).Doc(r.relayAddressAsKey(relayAddress))
 			relayDocData := map[string]any{
 				"address": relayAddress,
 			}
@@ -110,9 +111,9 @@ func (r *RegistrationRepository) GetRelays(ctx context.Context) ([]domain.RelayA
 			return nil, errors.Wrap(err, "error calling iter next")
 		}
 
-		relayAddress, err := domain.NewRelayAddress(docRef.Ref.ID)
+		relayAddress, err := r.relayAddressFromKey(docRef.Ref.ID)
 		if err != nil {
-			return nil, errors.Wrap(err, "error creating a relay address")
+			return nil, errors.Wrapf(err, "error creating a relay address from key '%s'", docRef.Ref.ID)
 		}
 		result = append(result, relayAddress)
 	}
@@ -121,7 +122,7 @@ func (r *RegistrationRepository) GetRelays(ctx context.Context) ([]domain.RelayA
 }
 
 func (r *RegistrationRepository) GetPublicKeys(ctx context.Context, address domain.RelayAddress) ([]domain.PublicKey, error) {
-	iter := r.client.Collection(collectionRelays).Doc(address.String()).Collection(collectionRelaysPublicKeys).Documents(ctx)
+	iter := r.client.Collection(collectionRelays).Doc(r.relayAddressAsKey(address)).Collection(collectionRelaysPublicKeys).Documents(ctx)
 
 	var result []domain.PublicKey
 	for {
@@ -141,4 +142,22 @@ func (r *RegistrationRepository) GetPublicKeys(ctx context.Context, address doma
 	}
 
 	return result, nil
+}
+
+func (r *RegistrationRepository) relayAddressAsKey(v domain.RelayAddress) string {
+	return hex.EncodeToString([]byte(v.String()))
+}
+
+func (r *RegistrationRepository) relayAddressFromKey(v string) (domain.RelayAddress, error) {
+	b, err := hex.DecodeString(v)
+	if err != nil {
+		return domain.RelayAddress{}, errors.Wrap(err, "error decoding relay address from hex")
+	}
+
+	addr, err := domain.NewRelayAddress(string(b))
+	if err != nil {
+		return domain.RelayAddress{}, errors.Wrap(err, "error creating a relay address")
+	}
+
+	return addr, nil
 }

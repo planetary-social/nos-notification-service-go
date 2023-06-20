@@ -92,7 +92,7 @@ func (s *Server) handleConnection(ctx context.Context, conn *websocket.Conn) err
 
 		switch v := message.(type) {
 		case *nostr.EventEnvelope:
-			event, err := domain.NewEventFromEnvelope(*v)
+			event, err := domain.NewEvent(v.Event)
 			if err != nil {
 				return errors.Wrap(err, "error creating an event")
 			}
