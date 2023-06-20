@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 
 	"github.com/boreq/errors"
@@ -29,13 +30,20 @@ func NewServer(config config.Config, app app.Application) Server {
 func (s *Server) ListenAndServe(ctx context.Context) error {
 	mux := s.createMux()
 
-	// todo context is not used
-	err := http.ListenAndServe(s.config.NostrListenAddress(), mux)
+	var listenConfig net.ListenConfig
+	listener, err := listenConfig.Listen(ctx, "tcp", s.config.NostrListenAddress())
 	if err != nil {
 		return errors.Wrap(err, "error listening")
 	}
 
-	return nil
+	go func() {
+		<-ctx.Done()
+		if err := listener.Close(); err != nil {
+			fmt.Println("error closing listener:", err)
+		}
+	}()
+
+	return http.Serve(listener, mux)
 }
 
 func (s *Server) createMux() *http.ServeMux {
@@ -54,13 +62,18 @@ func (s *Server) serveWs(rw http.ResponseWriter, r *http.Request) {
 
 	conn, err := upgrader.Upgrade(rw, r, nil)
 	if err != nil {
-		log.Println(err)
+		log.Println("error upgrading the connection:", err)
 		return
 	}
 
 	go func() {
+		defer func() {
+			err := conn.Close()
+			fmt.Println("closed the connection, error:", err)
+		}()
+
 		if err := s.handleConnection(conn); err != nil {
-			fmt.Println("error handling connection", err)
+			fmt.Println("error handling the connection:", err)
 		}
 	}()
 }
@@ -72,7 +85,7 @@ func (s *Server) handleConnection(conn *websocket.Conn) error {
 			return errors.Wrap(err, "error reading the websocket message")
 		}
 
-		fmt.Printf("Received websocket message: %s\n", string(messageBytes))
+		fmt.Printf("received websocket message: %s\n", string(messageBytes))
 
 		message := nostr.ParseMessage(messageBytes)
 		if message == nil {
@@ -99,6 +112,8 @@ func (s *Server) handleConnection(conn *websocket.Conn) error {
 			if err := s.app.Commands.SaveRegistration.Handle(cmd); err != nil {
 				return errors.Wrap(err, "error handling the registration command")
 			}
+		default:
+			fmt.Println("received an unknown message:", message)
 		}
 	}
 }

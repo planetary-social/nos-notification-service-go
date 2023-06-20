@@ -13,6 +13,8 @@ func BuildService(config.Config) (Service, func(), error) {
 		NewService,
 
 		portsSet,
+		applicationSet,
+		firestoreAdaptersSet,
 	)
 	return Service{}, nil, nil
 }

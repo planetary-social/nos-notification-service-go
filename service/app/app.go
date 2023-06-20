@@ -20,7 +20,7 @@ type Application struct {
 }
 
 type Commands struct {
-	SaveRegistration SaveRegistrationHandler
+	SaveRegistration *SaveRegistrationHandler
 }
 
 type Queries struct {

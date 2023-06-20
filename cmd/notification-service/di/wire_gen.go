@@ -7,6 +7,8 @@
 package di
 
 import (
+	"github.com/planetary-social/go-notification-service/service/adapters/firestore"
+	"github.com/planetary-social/go-notification-service/service/app"
 	"github.com/planetary-social/go-notification-service/service/config"
 	"github.com/planetary-social/go-notification-service/service/ports/http"
 )
@@ -14,7 +16,17 @@ import (
 // Injectors from wire.go:
 
 func BuildService(configConfig config.Config) (Service, func(), error) {
-	server := http.NewServer(configConfig)
+	transactionProvider := firestore.NewTransactionProvider()
+	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider)
+	commands := app.Commands{
+		SaveRegistration: saveRegistrationHandler,
+	}
+	queries := app.Queries{}
+	application := app.Application{
+		Commands: commands,
+		Queries:  queries,
+	}
+	server := http.NewServer(configConfig, application)
 	service := NewService(server)
 	return service, func() {
 	}, nil
