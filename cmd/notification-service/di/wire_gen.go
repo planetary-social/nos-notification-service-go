@@ -29,21 +29,28 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	commands := app.Commands{
 		SaveRegistration: saveRegistrationHandler,
 	}
-	queries := app.Queries{}
+	getRelaysHandler := app.NewGetRelaysHandler(transactionProvider)
+	getPublicKeysHandler := app.NewGetPublicKeysHandler(transactionProvider)
+	queries := app.Queries{
+		GetRelays:     getRelaysHandler,
+		GetPublicKeys: getPublicKeysHandler,
+	}
 	application := app.Application{
 		Commands: commands,
 		Queries:  queries,
 	}
 	server := http.NewServer(configConfig, application)
-	service := NewService(server)
+	service := NewService(application, server)
 	return service, func() {
 	}, nil
 }
 
 func buildTransactionFirestoreAdapters(client *firestore2.Client, tx *firestore2.Transaction) (app.Adapters, error) {
 	registrationRepository := firestore.NewRegistrationRepository(client, tx)
+	eventRepository := firestore.NewEventRepository(client, tx)
 	adapters := app.Adapters{
 		Registrations: registrationRepository,
+		Events:        eventRepository,
 	}
 	return adapters, nil
 }

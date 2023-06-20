@@ -7,6 +7,8 @@ import (
 	"github.com/planetary-social/go-notification-service/internal"
 )
 
+// todo make sure that the registration was sent by one of those public keys?
+// probably require separate events signed with a correct public key
 type Registration struct {
 	apnsToken  APNSToken
 	locale     Locale

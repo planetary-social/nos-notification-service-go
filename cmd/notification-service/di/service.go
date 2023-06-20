@@ -5,19 +5,27 @@ import (
 
 	"github.com/boreq/errors"
 	"github.com/hashicorp/go-multierror"
+	"github.com/planetary-social/go-notification-service/service/app"
 	"github.com/planetary-social/go-notification-service/service/ports/http"
 )
 
 type Service struct {
+	app    app.Application
 	server http.Server
 }
 
 func NewService(
+	app app.Application,
 	server http.Server,
 ) Service {
 	return Service{
+		app:    app,
 		server: server,
 	}
+}
+
+func (s Service) App() app.Application {
+	return s.app
 }
 
 func (s Service) Run(ctx context.Context) error {

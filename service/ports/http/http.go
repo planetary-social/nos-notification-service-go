@@ -103,7 +103,6 @@ func (s *Server) handleConnection(ctx context.Context, conn *websocket.Conn) err
 			}
 
 			cmd := app.NewSaveRegistration(
-				event.PubKey(),
 				registration,
 			)
 

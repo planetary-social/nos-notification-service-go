@@ -7,12 +7,11 @@ import (
 )
 
 type SaveRegistration struct {
-	eventAuthor  domain.PublicKey
 	registration domain.Registration
 }
 
-func NewSaveRegistration(eventAuthor domain.PublicKey, registration domain.Registration) SaveRegistration {
-	return SaveRegistration{eventAuthor: eventAuthor, registration: registration}
+func NewSaveRegistration(registration domain.Registration) SaveRegistration {
+	return SaveRegistration{registration: registration}
 }
 
 type SaveRegistrationHandler struct {

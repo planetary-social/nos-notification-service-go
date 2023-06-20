@@ -20,4 +20,7 @@ var commandsSet = wire.NewSet(
 
 var queriesSet = wire.NewSet(
 	wire.Struct(new(app.Queries), "*"),
+
+	app.NewGetRelaysHandler,
+	app.NewGetPublicKeysHandler,
 )

@@ -19,6 +19,7 @@ test:
 
 .PHONY: test-integration
 test-integration:
+	sudo docker-compose -f ./docker-compose-integration.yml rm -f -s -v
 	sudo docker-compose -f ./docker-compose-integration.yml up -d
 	FIRESTORE_EMULATOR_HOST=localhost:8200 go test -tags=test_integration -v ./...
 

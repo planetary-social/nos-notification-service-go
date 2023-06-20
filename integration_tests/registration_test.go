@@ -16,38 +16,45 @@ import (
 	"github.com/planetary-social/go-notification-service/cmd/notification-service/di"
 	"github.com/planetary-social/go-notification-service/internal/fixtures"
 	"github.com/planetary-social/go-notification-service/service/config"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestRegistration(t *testing.T) {
 	ctx := fixtures.Context(t)
-	config, _ := createService(ctx, t)
+	config, service := createService(ctx, t)
 	conn := createClient(ctx, t, config)
 
-	privateKey := nostr.GeneratePrivateKey()
+	publicKey, privateKeyHex := fixtures.SomeKeyPair()
+	relayAddress := fixtures.SomeRelayAddress()
 
 	event := nostr.Event{
 		CreatedAt: nostr.Now(),
 		Kind:      12345,
 		Tags:      nostr.Tags{},
-		Content: `
+		Content: fmt.Sprintf(`
 {
   "publicKeys": [
     {
-      "publicKey": "some-public-key",
+      "publicKey": "%s",
       "relays": [
         {
-          "address": "some-relay-address"
+          "address": "%s"
         }
       ]
     }
   ],
-  "locale": "some-locale",
-  "apnsToken": "some-apns-token"
+  "locale": "%s",
+  "apnsToken": "%s"
 }
 `,
+			publicKey.Hex(),
+			relayAddress.String(),
+			fixtures.SomeString(),
+			fixtures.SomeString()),
 	}
-	err := event.Sign(privateKey)
+
+	err := event.Sign(privateKeyHex)
 	require.NoError(t, err)
 
 	envelope := nostr.EventEnvelope{
@@ -61,7 +68,17 @@ func TestRegistration(t *testing.T) {
 	err = conn.WriteMessage(websocket.TextMessage, j)
 	require.NoError(t, err)
 
-	<-time.After(1 * time.Second) // todo replace with some kind a success condition
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		relays, err := service.App().Queries.GetRelays.Handle(ctx)
+		assert.NoError(c, err)
+		assert.Contains(c, relays, relayAddress)
+	}, 10*time.Second, 100*time.Millisecond)
+
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		publicKeys, err := service.App().Queries.GetPublicKeys.Handle(ctx, relayAddress)
+		assert.NoError(c, err)
+		assert.Contains(c, publicKeys, publicKey)
+	}, 10*time.Second, 100*time.Millisecond)
 }
 
 func createClient(ctx context.Context, tb testing.TB, config config.Config) *websocket.Conn {

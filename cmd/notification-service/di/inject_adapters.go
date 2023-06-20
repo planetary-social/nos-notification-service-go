@@ -25,6 +25,9 @@ func newAdaptersFactoryFn() firestore.AdaptersFactoryFn {
 var firestoreTxAdaptersSet = wire.NewSet(
 	firestore.NewRegistrationRepository,
 	wire.Bind(new(app.RegistrationRepository), new(*firestore.RegistrationRepository)),
+
+	firestore.NewEventRepository,
+	wire.Bind(new(app.EventRepository), new(*firestore.EventRepository)),
 )
 
 var adaptersSet = wire.NewSet(

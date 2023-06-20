@@ -12,10 +12,17 @@ type TransactionProvider interface {
 
 type Adapters struct {
 	Registrations RegistrationRepository
+	Events        EventRepository
 }
 
 type RegistrationRepository interface {
 	Save(registration domain.Registration) error
+	GetRelays(ctx context.Context) ([]domain.RelayAddress, error)
+	GetPublicKeys(ctx context.Context, address domain.RelayAddress) ([]domain.PublicKey, error)
+}
+
+type EventRepository interface {
+	Save(relay domain.RelayAddress, event domain.Event) error
 }
 
 type Application struct {
@@ -28,4 +35,6 @@ type Commands struct {
 }
 
 type Queries struct {
+	GetRelays     *GetRelaysHandler
+	GetPublicKeys *GetPublicKeysHandler
 }
