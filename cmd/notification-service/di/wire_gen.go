@@ -7,6 +7,8 @@
 package di
 
 import (
+	firestore2 "cloud.google.com/go/firestore"
+	"context"
 	"github.com/planetary-social/go-notification-service/service/adapters/firestore"
 	"github.com/planetary-social/go-notification-service/service/app"
 	"github.com/planetary-social/go-notification-service/service/config"
@@ -15,8 +17,12 @@ import (
 
 // Injectors from wire.go:
 
-func BuildService(configConfig config.Config) (Service, func(), error) {
-	transactionProvider := firestore.NewTransactionProvider()
+func BuildService(contextContext context.Context, configConfig config.Config) (Service, func(), error) {
+	client, err := firestore.NewClient(contextContext, configConfig)
+	if err != nil {
+		return Service{}, nil, err
+	}
+	transactionProvider := firestore.NewTransactionProvider(client)
 	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider)
 	commands := app.Commands{
 		SaveRegistration: saveRegistrationHandler,
@@ -30,4 +36,12 @@ func BuildService(configConfig config.Config) (Service, func(), error) {
 	service := NewService(server)
 	return service, func() {
 	}, nil
+}
+
+func buildTransactionFirestoreAdapters(tx *firestore2.Transaction) (app.Adapters, error) {
+	registrationRepository := firestore.NewRegistrationRepository(tx)
+	adapters := app.Adapters{
+		Registrations: registrationRepository,
+	}
+	return adapters, nil
 }

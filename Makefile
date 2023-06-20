@@ -17,6 +17,11 @@ fmt:
 test:
 	go test -race ./...
 
+.PHONY: test-integration
+test-integration:
+	sudo docker-compose -f ./docker-compose-integration.yml up -d
+	FIRESTORE_EMULATOR_HOST=firestore_emulator:8200 go test -tags=test_integration ./...
+
 .PHONY: tidy
 tidy:
 	go mod tidy

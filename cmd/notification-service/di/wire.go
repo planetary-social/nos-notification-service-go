@@ -4,11 +4,15 @@
 package di
 
 import (
+	"context"
+
+	googlefirestore "cloud.google.com/go/firestore"
 	"github.com/google/wire"
+	"github.com/planetary-social/go-notification-service/service/app"
 	"github.com/planetary-social/go-notification-service/service/config"
 )
 
-func BuildService(config.Config) (Service, func(), error) {
+func BuildService(context.Context, config.Config) (Service, func(), error) {
 	wire.Build(
 		NewService,
 
@@ -17,6 +21,16 @@ func BuildService(config.Config) (Service, func(), error) {
 		firestoreAdaptersSet,
 	)
 	return Service{}, nil, nil
+}
+
+func buildTransactionFirestoreAdapters(tx *googlefirestore.Transaction) (app.Adapters, error) {
+	wire.Build(
+		wire.Struct(new(app.Adapters), "*"),
+
+		firestoreTxAdaptersSet,
+	)
+	return app.Adapters{}, nil
+
 }
 
 //func newAdvertiser(l identity.Public, config service.Config) (*local.Advertiser, error) {

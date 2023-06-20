@@ -28,7 +28,7 @@ func NewServer(config config.Config, app app.Application) Server {
 }
 
 func (s *Server) ListenAndServe(ctx context.Context) error {
-	mux := s.createMux()
+	mux := s.createMux(ctx)
 
 	var listenConfig net.ListenConfig
 	listener, err := listenConfig.Listen(ctx, "tcp", s.config.NostrListenAddress())
@@ -46,15 +46,15 @@ func (s *Server) ListenAndServe(ctx context.Context) error {
 	return http.Serve(listener, mux)
 }
 
-func (s *Server) createMux() *http.ServeMux {
+func (s *Server) createMux(ctx context.Context) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		s.serveWs(w, r)
+		s.serveWs(ctx, w, r)
 	})
 	return mux
 }
 
-func (s *Server) serveWs(rw http.ResponseWriter, r *http.Request) {
+func (s *Server) serveWs(ctx context.Context, rw http.ResponseWriter, r *http.Request) {
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
@@ -72,13 +72,13 @@ func (s *Server) serveWs(rw http.ResponseWriter, r *http.Request) {
 			fmt.Println("closed the connection, error:", err)
 		}()
 
-		if err := s.handleConnection(conn); err != nil {
+		if err := s.handleConnection(ctx, conn); err != nil {
 			fmt.Println("error handling the connection:", err)
 		}
 	}()
 }
 
-func (s *Server) handleConnection(conn *websocket.Conn) error {
+func (s *Server) handleConnection(ctx context.Context, conn *websocket.Conn) error {
 	for {
 		_, messageBytes, err := conn.ReadMessage()
 		if err != nil {
@@ -109,7 +109,7 @@ func (s *Server) handleConnection(conn *websocket.Conn) error {
 				registration,
 			)
 
-			if err := s.app.Commands.SaveRegistration.Handle(cmd); err != nil {
+			if err := s.app.Commands.SaveRegistration.Handle(ctx, cmd); err != nil {
 				return errors.Wrap(err, "error handling the registration command")
 			}
 		default:

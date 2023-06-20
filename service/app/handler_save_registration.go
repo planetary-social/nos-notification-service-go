@@ -1,6 +1,8 @@
 package app
 
 import (
+	"context"
+
 	"github.com/planetary-social/go-notification-service/service/domain"
 )
 
@@ -25,8 +27,8 @@ func NewSaveRegistrationHandler(
 	}
 }
 
-func (h *SaveRegistrationHandler) Handle(cmd SaveRegistration) error {
-	return h.transactionProvider.Transact(func(adapters Adapters) error {
+func (h *SaveRegistrationHandler) Handle(ctx context.Context, cmd SaveRegistration) error {
+	return h.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
 		return adapters.Registrations.Save(cmd.registration)
 	})
 }

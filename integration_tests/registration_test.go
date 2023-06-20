@@ -1,3 +1,5 @@
+//go:build test_integration
+
 package integration_tests
 
 import (
@@ -75,14 +77,14 @@ func createClient(ctx context.Context, tb testing.TB, config config.Config) *web
 }
 
 func createService(ctx context.Context, tb testing.TB) (config.Config, di.Service) {
-	config := config.NewConfig("")
-	service, cleanup, err := di.BuildService(config)
+	config, err := config.NewConfig("", "test-project-id")
+	require.NoError(tb, err)
+
+	service, cleanup, err := di.BuildService(ctx, config)
 	require.NoError(tb, err)
 	tb.Cleanup(cleanup)
 
 	terminatedCh := make(chan error)
-
-	runCtx, cancelRunCtx := context.WithCancel(ctx)
 
 	tb.Cleanup(func() {
 		if err := <-terminatedCh; err != nil {
@@ -93,8 +95,8 @@ func createService(ctx context.Context, tb testing.TB) (config.Config, di.Servic
 		}
 	})
 
+	runCtx, cancelRunCtx := context.WithCancel(ctx)
 	tb.Cleanup(cancelRunCtx)
-
 	go func() {
 		terminatedCh <- service.Run(runCtx)
 	}()

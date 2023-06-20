@@ -1,9 +1,13 @@
 package app
 
-import "github.com/planetary-social/go-notification-service/service/domain"
+import (
+	"context"
+
+	"github.com/planetary-social/go-notification-service/service/domain"
+)
 
 type TransactionProvider interface {
-	Transact(func(adapters Adapters) error) error
+	Transact(context.Context, func(context.Context, Adapters) error) error
 }
 
 type Adapters struct {
