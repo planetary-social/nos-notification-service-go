@@ -7,12 +7,3 @@ services:
       - PORT=8200
     ports:
       - 8200:8200
-#  app:
-#    build:
-#      context: .
-#      dockerfile: ./Dockerfile.integration
-#    environment:
-#      - FIRESTORE_EMULATOR_HOST=firestore_emulator:8200
-#      - FIRESTORE_PROJECT_ID=dummy-project-id
-#    depends_on:
-#      - firestore_emulator

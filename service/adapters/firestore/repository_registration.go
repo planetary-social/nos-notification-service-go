@@ -2,7 +2,6 @@ package firestore
 
 import (
 	"cloud.google.com/go/firestore"
-	"github.com/boreq/errors"
 	"github.com/planetary-social/go-notification-service/service/domain"
 )
 
@@ -15,5 +14,5 @@ func NewRegistrationRepository(tx *firestore.Transaction) *RegistrationRepositor
 }
 
 func (r RegistrationRepository) Save(registration domain.Registration) error {
-	return errors.New("save not implemented")
+	return nil
 }

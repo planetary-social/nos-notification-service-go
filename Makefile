@@ -20,7 +20,7 @@ test:
 .PHONY: test-integration
 test-integration:
 	sudo docker-compose -f ./docker-compose-integration.yml up -d
-	FIRESTORE_EMULATOR_HOST=firestore_emulator:8200 go test -tags=test_integration ./...
+	FIRESTORE_EMULATOR_HOST=localhost:8200 go test -tags=test_integration -v ./...
 
 .PHONY: tidy
 tidy:

@@ -7,8 +7,9 @@
 package di
 
 import (
-	firestore2 "cloud.google.com/go/firestore"
 	"context"
+
+	firestore2 "cloud.google.com/go/firestore"
 	"github.com/planetary-social/go-notification-service/service/adapters/firestore"
 	"github.com/planetary-social/go-notification-service/service/app"
 	"github.com/planetary-social/go-notification-service/service/config"
@@ -22,7 +23,8 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	if err != nil {
 		return Service{}, nil, err
 	}
-	transactionProvider := firestore.NewTransactionProvider(client)
+	adaptersFactoryFn := newAdaptersFactoryFn()
+	transactionProvider := firestore.NewTransactionProvider(client, adaptersFactoryFn)
 	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider)
 	commands := app.Commands{
 		SaveRegistration: saveRegistrationHandler,

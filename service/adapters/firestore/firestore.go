@@ -20,8 +20,9 @@ type TransactionProvider struct {
 	client *firestore.Client
 }
 
-func NewTransactionProvider(client *firestore.Client) *TransactionProvider {
+func NewTransactionProvider(client *firestore.Client, fn AdaptersFactoryFn) *TransactionProvider {
 	return &TransactionProvider{
+		fn:     fn,
 		client: client,
 	}
 }

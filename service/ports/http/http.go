@@ -66,16 +66,14 @@ func (s *Server) serveWs(ctx context.Context, rw http.ResponseWriter, r *http.Re
 		return
 	}
 
-	go func() {
-		defer func() {
-			err := conn.Close()
-			fmt.Println("closed the connection, error:", err)
-		}()
-
-		if err := s.handleConnection(ctx, conn); err != nil {
-			fmt.Println("error handling the connection:", err)
-		}
+	defer func() {
+		err := conn.Close()
+		fmt.Println("closed the connection, error:", err)
 	}()
+
+	if err := s.handleConnection(ctx, conn); err != nil {
+		fmt.Println("error handling the connection:", err)
+	}
 }
 
 func (s *Server) handleConnection(ctx context.Context, conn *websocket.Conn) error {
