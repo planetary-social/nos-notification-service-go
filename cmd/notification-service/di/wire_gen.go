@@ -40,8 +40,8 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	}, nil
 }
 
-func buildTransactionFirestoreAdapters(tx *firestore2.Transaction) (app.Adapters, error) {
-	registrationRepository := firestore.NewRegistrationRepository(tx)
+func buildTransactionFirestoreAdapters(client *firestore2.Client, tx *firestore2.Transaction) (app.Adapters, error) {
+	registrationRepository := firestore.NewRegistrationRepository(client, tx)
 	adapters := app.Adapters{
 		Registrations: registrationRepository,
 	}

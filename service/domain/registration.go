@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 
 	"github.com/boreq/errors"
+	"github.com/planetary-social/go-notification-service/internal"
 )
 
 type Registration struct {
-	publicKeys []PublicKeyWithRelays
-	locale     Locale
 	apnsToken  APNSToken
+	locale     Locale
+	publicKeys []PublicKeyWithRelays
 }
 
 func NewRegistrationFromEvent(event Event) (Registration, error) {
@@ -72,6 +73,18 @@ func newPublicKeysWithRelays(v registrationTransport) ([]PublicKeyWithRelays, er
 	return publicKeysWithRelays, nil
 }
 
+func (r Registration) APNSToken() APNSToken {
+	return r.apnsToken
+}
+
+func (r Registration) Locale() Locale {
+	return r.locale
+}
+
+func (r Registration) PublicKeys() []PublicKeyWithRelays {
+	return internal.CopySlice(r.publicKeys)
+}
+
 type PublicKeyWithRelays struct {
 	publicKey PublicKey
 	relays    []RelayAddress
@@ -83,6 +96,14 @@ func NewPublicKeyWithRelays(publicKey PublicKey, relays []RelayAddress) (PublicK
 	return PublicKeyWithRelays{publicKey: publicKey, relays: relays}, nil
 }
 
+func (p PublicKeyWithRelays) PublicKey() PublicKey {
+	return p.publicKey
+}
+
+func (p PublicKeyWithRelays) Relays() []RelayAddress {
+	return internal.CopySlice(p.relays)
+}
+
 type RelayAddress struct {
 	s string
 }
@@ -91,6 +112,10 @@ func NewRelayAddress(s string) (RelayAddress, error) {
 	// todo validate
 
 	return RelayAddress{s: s}, nil
+}
+
+func (r RelayAddress) String() string {
+	return r.s
 }
 
 type registrationTransport struct {

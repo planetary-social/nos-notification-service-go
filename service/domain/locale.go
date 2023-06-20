@@ -9,3 +9,7 @@ func NewLocale(s string) (Locale, error) {
 
 	return Locale{s: s}, nil
 }
+
+func (l Locale) String() string {
+	return l.s
+}

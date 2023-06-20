@@ -23,7 +23,7 @@ func BuildService(context.Context, config.Config) (Service, func(), error) {
 	return Service{}, nil, nil
 }
 
-func buildTransactionFirestoreAdapters(tx *googlefirestore.Transaction) (app.Adapters, error) {
+func buildTransactionFirestoreAdapters(client *googlefirestore.Client, tx *googlefirestore.Transaction) (app.Adapters, error) {
 	wire.Build(
 		wire.Struct(new(app.Adapters), "*"),
 

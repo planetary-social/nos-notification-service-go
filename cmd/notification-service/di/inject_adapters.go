@@ -17,8 +17,8 @@ var firestoreAdaptersSet = wire.NewSet(
 )
 
 func newAdaptersFactoryFn() firestore.AdaptersFactoryFn {
-	return func(transaction *googlefirestore.Transaction) (app.Adapters, error) {
-		return buildTransactionFirestoreAdapters(transaction)
+	return func(client *googlefirestore.Client, tx *googlefirestore.Transaction) (app.Adapters, error) {
+		return buildTransactionFirestoreAdapters(client, tx)
 	}
 }
 
@@ -29,8 +29,4 @@ var firestoreTxAdaptersSet = wire.NewSet(
 
 var adaptersSet = wire.NewSet(
 // adapters.NewCurrentTimeProvider,
-// wire.Bind(new(commands.CurrentTimeProvider), new(*adapters.CurrentTimeProvider)),
-// wire.Bind(new(boxstream.CurrentTimeProvider), new(*adapters.CurrentTimeProvider)),
-// wire.Bind(new(invitesadapters.CurrentTimeProvider), new(*adapters.CurrentTimeProvider)),
-// wire.Bind(new(blobreplication.CurrentTimeProvider), new(*adapters.CurrentTimeProvider)),
 )

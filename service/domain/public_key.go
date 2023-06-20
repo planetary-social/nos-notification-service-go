@@ -9,3 +9,7 @@ func NewPublicKey(s string) (PublicKey, error) {
 
 	return PublicKey{s}, nil
 }
+
+func (k PublicKey) Bytes() []byte {
+	return k.Bytes()
+}
