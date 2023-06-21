@@ -18,7 +18,7 @@ type Registration struct {
 
 func NewRegistrationFromEvent(event Event) (Registration, error) {
 	var v registrationTransport
-	if err := json.Unmarshal(event.Content(), &v); err != nil {
+	if err := json.Unmarshal([]byte(event.Content()), &v); err != nil {
 		return Registration{}, errors.Wrap(err, "error unmarshaling content")
 	}
 

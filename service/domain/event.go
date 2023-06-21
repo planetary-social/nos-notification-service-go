@@ -1,15 +1,20 @@
 package domain
 
 import (
-	"bytes"
+	"time"
 
 	"github.com/boreq/errors"
 	"github.com/nbd-wtf/go-nostr"
 )
 
 type Event struct {
-	pubKey  PublicKey
-	content []byte
+	id        EventId
+	pubKey    PublicKey
+	createdAt time.Time
+	kind      EventKind
+	tags      []EventTag
+	content   string
+	sig       EventSignature
 }
 
 func NewEvent(libevent nostr.Event) (Event, error) {
@@ -22,21 +27,72 @@ func NewEvent(libevent nostr.Event) (Event, error) {
 		return Event{}, errors.New("invalid signature")
 	}
 
+	id, err := NewEventId(libevent.ID)
+	if err != nil {
+		return Event{}, errors.Wrap(err, "error creating an event id")
+	}
+
 	pubKey, err := NewPublicKey(libevent.PubKey)
 	if err != nil {
 		return Event{}, errors.Wrap(err, "error creating a pub key")
 	}
 
+	createdAt := time.Unix(int64(libevent.CreatedAt), 0).UTC()
+
+	kind, err := NewEventKind(libevent.Kind)
+	if err != nil {
+		return Event{}, errors.Wrap(err, "error creating event kind")
+	}
+
+	var tags []EventTag
+	for _, libtag := range libevent.Tags {
+		eventTag, err := NewEventTag(libtag)
+		if err != nil {
+			return Event{}, errors.Wrap(err, "error creating a tag")
+		}
+		tags = append(tags, eventTag)
+	}
+
+	sig, err := NewEventSignature(libevent.Sig)
+	if err != nil {
+		return Event{}, errors.Wrap(err, "error creating a signature")
+	}
+
 	return Event{
-		pubKey:  pubKey,
-		content: []byte(libevent.Content),
+		id:        id,
+		pubKey:    pubKey,
+		createdAt: createdAt,
+		kind:      kind,
+		tags:      tags,
+		content:   libevent.Content,
+		sig:       sig,
 	}, nil
+}
+
+func (e Event) Id() EventId {
+	return e.id
 }
 
 func (e Event) PubKey() PublicKey {
 	return e.pubKey
 }
 
-func (e Event) Content() []byte {
-	return bytes.Clone(e.content)
+func (e Event) CreatedAt() time.Time {
+	return e.createdAt
+}
+
+func (e Event) Kind() EventKind {
+	return e.kind
+}
+
+func (e Event) Tags() []EventTag {
+	return e.tags
+}
+
+func (e Event) Content() string {
+	return e.content
+}
+
+func (e Event) Sig() EventSignature {
+	return e.sig
 }

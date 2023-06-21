@@ -2,6 +2,7 @@ package domain
 
 import (
 	"encoding/hex"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 
 	"github.com/boreq/errors"
 )
@@ -11,12 +12,16 @@ type PublicKey struct {
 }
 
 func NewPublicKey(s string) (PublicKey, error) {
-	decodeString, err := hex.DecodeString(s)
+	b, err := hex.DecodeString(s)
 	if err != nil {
 		return PublicKey{}, errors.Wrap(err, "error decoding hex")
 	}
 
-	s = hex.EncodeToString(decodeString)
+	if len(b) != secp256k1.PrivKeyBytesLen {
+		return PublicKey{}, errors.New("invalid length")
+	}
+
+	s = hex.EncodeToString(b)
 	return PublicKey{s}, nil
 }
 

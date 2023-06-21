@@ -99,6 +99,7 @@ func (r *RegistrationRepository) saveUnderRelays(registration domain.Registratio
 }
 
 func (r *RegistrationRepository) GetRelays(ctx context.Context) ([]domain.RelayAddress, error) {
+	// todo do it in transaction? emulator doesn't support it
 	iter := r.client.Collection(collectionRelays).Documents(ctx)
 
 	var result []domain.RelayAddress
@@ -122,6 +123,7 @@ func (r *RegistrationRepository) GetRelays(ctx context.Context) ([]domain.RelayA
 }
 
 func (r *RegistrationRepository) GetPublicKeys(ctx context.Context, address domain.RelayAddress) ([]domain.PublicKey, error) {
+	// todo do it in transaction? emulator doesn't support it
 	iter := r.client.Collection(collectionRelays).Doc(r.relayAddressAsKey(address)).Collection(collectionRelaysPublicKeys).Documents(ctx)
 
 	var result []domain.PublicKey
