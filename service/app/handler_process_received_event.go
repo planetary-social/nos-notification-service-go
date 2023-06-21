@@ -12,8 +12,8 @@ type ProcessReceivedEvent struct {
 	event domain.Event
 }
 
-func NewProcessReceivedEvent(relay domain.RelayAddress, event domain.Event) *ProcessReceivedEvent {
-	return &ProcessReceivedEvent{relay: relay, event: event}
+func NewProcessReceivedEvent(relay domain.RelayAddress, event domain.Event) ProcessReceivedEvent {
+	return ProcessReceivedEvent{relay: relay, event: event}
 }
 
 type ProcessReceivedEventHandler struct {

@@ -22,7 +22,7 @@ func NewGetRelaysHandler(
 func (h *GetRelaysHandler) Handle(ctx context.Context) ([]domain.RelayAddress, error) {
 	var result []domain.RelayAddress
 	if err := h.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
-		tmp, err := adapters.Registrations.GetRelays(ctx)
+		tmp, err := adapters.Relays.GetRelays(ctx)
 		if err != nil {
 			return errors.Wrap(err, "error getting relays")
 		}
