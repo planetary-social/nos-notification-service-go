@@ -3,6 +3,7 @@ package domain
 import (
 	"crypto/sha256"
 	"encoding/hex"
+
 	"github.com/boreq/errors"
 )
 

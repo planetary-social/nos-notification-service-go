@@ -2,6 +2,7 @@ package domain
 
 import (
 	"encoding/hex"
+
 	"github.com/boreq/errors"
 )
 
