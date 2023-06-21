@@ -1,16 +1,25 @@
-package domain
+package domain_test
 
 import (
+	"github.com/planetary-social/go-notification-service/internal/fixtures"
+	"github.com/planetary-social/go-notification-service/service/domain"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestPublicKey_IsCaseInsensitive(t *testing.T) {
-	a, err := NewPublicKey("ABCD")
+	hex := fixtures.SomeHexBytesOfLen(32)
+	hexLower := strings.ToLower(hex)
+	hexUpper := strings.ToUpper(hex)
+
+	require.NotEqual(t, hexLower, hexUpper)
+
+	a, err := domain.NewPublicKey(hexLower)
 	require.NoError(t, err)
 
-	b, err := NewPublicKey("abcd")
+	b, err := domain.NewPublicKey(hexUpper)
 	require.NoError(t, err)
 
 	require.Equal(t, a, b)

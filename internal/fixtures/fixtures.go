@@ -2,6 +2,8 @@ package fixtures
 
 import (
 	"context"
+	cryptorand "crypto/rand"
+	"encoding/hex"
 	"math/rand"
 	"testing"
 
@@ -43,6 +45,18 @@ func SomeRelayAddress() domain.RelayAddress {
 
 func SomeString() string {
 	return randSeq(10)
+}
+
+func SomeHexBytesOfLen(l int) string {
+	b := make([]byte, l)
+	n, err := cryptorand.Read(b)
+	if n != len(b) {
+		panic("short read")
+	}
+	if err != nil {
+		panic(err)
+	}
+	return hex.EncodeToString(b)
 }
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
