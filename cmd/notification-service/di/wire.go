@@ -20,6 +20,7 @@ func BuildService(context.Context, config.Config) (Service, func(), error) {
 		applicationSet,
 		firestoreAdaptersSet,
 		downloaderSet,
+		pubsubSet,
 	)
 	return Service{}, nil, nil
 }

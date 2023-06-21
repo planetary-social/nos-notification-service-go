@@ -13,15 +13,26 @@ import (
 	"github.com/planetary-social/go-notification-service/service/domain"
 )
 
-type Downloader struct {
-	transactionProvider TransactionProvider
-	relayDownloaders    map[domain.RelayAddress]*RelayDownloader
+type ReceivedEventPublisher interface {
+	Publish(relay domain.RelayAddress, event domain.Event)
 }
 
-func NewDownloader(transaction TransactionProvider) *Downloader {
+type Downloader struct {
+	transactionProvider    TransactionProvider
+	receivedEventPublisher ReceivedEventPublisher
+
+	relayDownloaders map[domain.RelayAddress]*RelayDownloader
+}
+
+func NewDownloader(
+	transaction TransactionProvider,
+	receivedEventPublisher ReceivedEventPublisher,
+) *Downloader {
 	return &Downloader{
-		transactionProvider: transaction,
-		relayDownloaders:    map[domain.RelayAddress]*RelayDownloader{},
+		transactionProvider:    transaction,
+		receivedEventPublisher: receivedEventPublisher,
+
+		relayDownloaders: map[domain.RelayAddress]*RelayDownloader{},
 	}
 }
 
@@ -41,7 +52,7 @@ func (d *Downloader) Run(ctx context.Context) error {
 
 		for _, relayAddress := range relayAddresses.List() {
 			if _, ok := d.relayDownloaders[relayAddress]; !ok {
-				relayDownloader := NewRelayDownloader(ctx, d.transactionProvider, relayAddress)
+				relayDownloader := NewRelayDownloader(ctx, d.transactionProvider, d.receivedEventPublisher, relayAddress)
 				d.relayDownloaders[relayAddress] = relayDownloader
 			}
 		}
@@ -54,7 +65,7 @@ func (d *Downloader) getRelays(ctx context.Context) (*internal.Set[domain.RelayA
 	var relays []domain.RelayAddress
 
 	if err := d.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
-		tmp, err := adapters.Registrations.GetRelays(ctx)
+		tmp, err := adapters.Relays.GetRelays(ctx)
 		if err != nil {
 			return errors.Wrap(err, "error getting relays")
 		}
@@ -68,17 +79,25 @@ func (d *Downloader) getRelays(ctx context.Context) (*internal.Set[domain.RelayA
 }
 
 type RelayDownloader struct {
-	address             domain.RelayAddress
-	transactionProvider TransactionProvider
-	cancel              context.CancelFunc
+	transactionProvider    TransactionProvider
+	receivedEventPublisher ReceivedEventPublisher
+
+	address domain.RelayAddress
+	cancel  context.CancelFunc
 }
 
-func NewRelayDownloader(ctx context.Context, transactionProvider TransactionProvider, address domain.RelayAddress) *RelayDownloader {
+func NewRelayDownloader(
+	ctx context.Context,
+	transactionProvider TransactionProvider,
+	receivedEventPublisher ReceivedEventPublisher,
+	address domain.RelayAddress,
+) *RelayDownloader {
 	ctx, cancel := context.WithCancel(ctx)
 	v := &RelayDownloader{
-		transactionProvider: transactionProvider,
-		cancel:              cancel,
-		address:             address,
+		transactionProvider:    transactionProvider,
+		receivedEventPublisher: receivedEventPublisher,
+		cancel:                 cancel,
+		address:                address,
 	}
 	go v.run(ctx)
 	return v
@@ -121,7 +140,7 @@ func (d *RelayDownloader) connectAndDownload(ctx context.Context) error {
 			return errors.Wrap(err, "error reading a message")
 		}
 
-		if err := d.handleMessage(ctx, messageBytes, activeSubscriptions, activeSubscriptionsLock); err != nil {
+		if err := d.handleMessage(messageBytes, activeSubscriptions, activeSubscriptionsLock); err != nil {
 			return errors.Wrap(err, "error handling message")
 		}
 
@@ -130,7 +149,6 @@ func (d *RelayDownloader) connectAndDownload(ctx context.Context) error {
 }
 
 func (d *RelayDownloader) handleMessage(
-	ctx context.Context,
 	messageBytes []byte,
 	activeSubscriptions *internal.Set[domain.PublicKey],
 	activeSubscriptionsLock *sync.Mutex,
@@ -158,13 +176,7 @@ func (d *RelayDownloader) handleMessage(
 			return errors.Wrap(err, "error creating an event")
 		}
 
-		// todo maybe pubsub those events and then handle them later?
-		if err := d.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
-			// todo figure out if we actually want to save this
-			return adapters.Events.Save(d.address, event)
-		}); err != nil {
-			return errors.Wrap(err, "transaction error")
-		}
+		d.receivedEventPublisher.Publish(d.address, event)
 	default:
 		fmt.Println("unknown message:", string(messageBytes))
 	}
@@ -250,7 +262,7 @@ func (d *RelayDownloader) getPublicKeys(ctx context.Context) (*internal.Set[doma
 	var publicKeys []domain.PublicKey
 
 	if err := d.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
-		tmp, err := adapters.Registrations.GetPublicKeys(ctx, d.address)
+		tmp, err := adapters.Relays.GetPublicKeys(ctx, d.address)
 		if err != nil {
 			return errors.Wrap(err, "error getting public keys")
 		}
@@ -263,6 +275,6 @@ func (d *RelayDownloader) getPublicKeys(ctx context.Context) (*internal.Set[doma
 	return internal.NewSet(publicKeys), nil
 }
 
-func (d RelayDownloader) Stop() {
+func (d *RelayDownloader) Stop() {
 	d.cancel()
 }

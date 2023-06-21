@@ -7,23 +7,27 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/planetary-social/go-notification-service/service/app"
 	"github.com/planetary-social/go-notification-service/service/ports/http"
+	"github.com/planetary-social/go-notification-service/service/ports/pubsub"
 )
 
 type Service struct {
-	app        app.Application
-	server     http.Server
-	downloader *app.Downloader
+	app                     app.Application
+	server                  http.Server
+	downloader              *app.Downloader
+	receivedEventSubscriber *pubsub.ReceivedEventSubscriber
 }
 
 func NewService(
 	app app.Application,
 	server http.Server,
 	downloader *app.Downloader,
+	receivedEventSubscriber *pubsub.ReceivedEventSubscriber,
 ) Service {
 	return Service{
-		app:        app,
-		server:     server,
-		downloader: downloader,
+		app:                     app,
+		server:                  server,
+		downloader:              downloader,
+		receivedEventSubscriber: receivedEventSubscriber,
 	}
 }
 
@@ -46,6 +50,11 @@ func (s Service) Run(ctx context.Context) error {
 	runners++
 	go func() {
 		errCh <- s.downloader.Run(ctx)
+	}()
+
+	runners++
+	go func() {
+		errCh <- s.receivedEventSubscriber.Run(ctx)
 	}()
 
 	var err error

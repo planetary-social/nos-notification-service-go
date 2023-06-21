@@ -11,9 +11,11 @@ import (
 
 	firestore2 "cloud.google.com/go/firestore"
 	"github.com/planetary-social/go-notification-service/service/adapters/firestore"
+	"github.com/planetary-social/go-notification-service/service/adapters/pubsub"
 	"github.com/planetary-social/go-notification-service/service/app"
 	"github.com/planetary-social/go-notification-service/service/config"
 	"github.com/planetary-social/go-notification-service/service/ports/http"
+	pubsub2 "github.com/planetary-social/go-notification-service/service/ports/pubsub"
 )
 
 // Injectors from wire.go:
@@ -40,18 +42,23 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 		Queries:  queries,
 	}
 	server := http.NewServer(configConfig, application)
-	downloader := app.NewDownloader(transactionProvider)
-	service := NewService(application, server, downloader)
+	receivedEventPubSub := pubsub.NewReceivedEventPubSub()
+	downloader := app.NewDownloader(transactionProvider, receivedEventPubSub)
+	processReceivedEventHandler := app.NewProcessReceivedEventHandler(transactionProvider)
+	receivedEventSubscriber := pubsub2.NewReceivedEventSubscriber(receivedEventPubSub, processReceivedEventHandler)
+	service := NewService(application, server, downloader, receivedEventSubscriber)
 	return service, func() {
 	}, nil
 }
 
 func buildTransactionFirestoreAdapters(client *firestore2.Client, tx *firestore2.Transaction) (app.Adapters, error) {
-	registrationRepository := firestore.NewRegistrationRepository(client, tx)
-	eventRepository := firestore.NewEventRepository(client, tx)
+	relayRepository := firestore.NewRelayRepository(client, tx)
+	registrationRepository := firestore.NewRegistrationRepository(client, tx, relayRepository)
+	eventRepository := firestore.NewEventRepository(client, tx, relayRepository)
 	adapters := app.Adapters{
 		Registrations: registrationRepository,
 		Events:        eventRepository,
+		Relays:        relayRepository,
 	}
 	return adapters, nil
 }

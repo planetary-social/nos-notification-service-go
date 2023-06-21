@@ -28,4 +28,7 @@ var firestoreTxAdaptersSet = wire.NewSet(
 
 	firestore.NewEventRepository,
 	wire.Bind(new(app.EventRepository), new(*firestore.EventRepository)),
+
+	firestore.NewRelayRepository,
+	wire.Bind(new(app.RelayRepository), new(*firestore.RelayRepository)),
 )

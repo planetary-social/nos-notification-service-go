@@ -1,11 +1,11 @@
 package domain_test
 
 import (
-	"github.com/planetary-social/go-notification-service/internal/fixtures"
-	"github.com/planetary-social/go-notification-service/service/domain"
 	"strings"
 	"testing"
 
+	"github.com/planetary-social/go-notification-service/internal/fixtures"
+	"github.com/planetary-social/go-notification-service/service/domain"
 	"github.com/stretchr/testify/require"
 )
 
