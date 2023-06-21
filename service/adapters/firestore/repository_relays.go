@@ -3,7 +3,6 @@ package firestore
 import (
 	"context"
 	"encoding/hex"
-	"time"
 
 	"cloud.google.com/go/firestore"
 	"github.com/boreq/errors"
@@ -45,45 +44,6 @@ func (r *RelayRepository) Save(registration domain.Registration) error {
 			}
 		}
 	}
-	return nil
-}
-
-const fieldLastEventTimestamp = "lastEventTimestamp"
-
-func (r *RelayRepository) UpdateLastEventTime(relay domain.RelayAddress, event domain.Event) error {
-	doc, err := r.tx.Get(
-		r.client.
-			Collection(collectionRelays).
-			Doc(relayAddressAsKey(relay)).
-			Collection(collectionRelaysPublicKeys).
-			Doc(event.PubKey().Hex()),
-	)
-	if err != nil {
-		return errors.Wrap(err, "error getting the document")
-	}
-
-	data := make(map[string]any)
-
-	if err := doc.DataTo(&data); err != nil {
-		return errors.Wrap(err, "error loading document data")
-	}
-
-	lastEventTimestamp, ok := data[fieldLastEventTimestamp].(time.Time)
-	if !ok {
-		lastEventTimestamp = time.Time{}
-	}
-
-	if lastEventTimestamp.Before(event.CreatedAt()) {
-		if err := r.tx.Update(doc.Ref, []firestore.Update{
-			{
-				Path:  fieldLastEventTimestamp,
-				Value: event.CreatedAt(),
-			},
-		}, firestore.Exists); err != nil {
-			return errors.Wrap(err, "error updating the last event timestamp")
-		}
-	}
-
 	return nil
 }
 

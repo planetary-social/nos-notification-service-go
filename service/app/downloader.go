@@ -204,6 +204,8 @@ func (d *RelayDownloader) manageSubs(
 	}
 }
 
+const howFarIntoThePastToLook = 7 * 24 * time.Hour
+
 func (d *RelayDownloader) updateSubs(
 	conn *websocket.Conn,
 	activeSubscriptions *internal.Set[domain.PublicKey],
@@ -232,13 +234,15 @@ func (d *RelayDownloader) updateSubs(
 
 	for _, publicKey := range publicKeys.List() {
 		if ok := activeSubscriptions.Contains(publicKey); !ok {
+			t := nostr.Timestamp(time.Now().Add(-howFarIntoThePastToLook).Unix())
+
 			envelope := nostr.ReqEnvelope{
 				SubscriptionID: publicKey.Hex(),
 				Filters: nostr.Filters{nostr.Filter{
-					Authors: []string{
-						publicKey.Hex(),
+					Tags: map[string][]string{
+						"p": {publicKey.Hex()},
 					},
-					Since: nil, // todo filter based on already received events
+					Since: &t,
 				}},
 			}
 

@@ -29,10 +29,6 @@ func NewEventRepository(
 }
 
 func (e *EventRepository) Save(relay domain.RelayAddress, event domain.Event) error {
-	if err := e.relayRepository.UpdateLastEventTime(relay, event); err != nil {
-		return errors.Wrap(err, "error saving under events")
-	}
-
 	if err := e.saveUnderEvents(event); err != nil {
 		return errors.Wrap(err, "error saving under events")
 	}
