@@ -20,5 +20,7 @@ func newSystemLogger(system logging.LoggingSystem) logging.Logger {
 }
 
 func newLogrus() *logrus.Logger {
-	return logrus.New()
+	v := logrus.New()
+	v.SetLevel(logrus.DebugLevel)
+	return v
 }

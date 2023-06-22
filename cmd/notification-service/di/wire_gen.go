@@ -44,10 +44,10 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	}
 	server := http.NewServer(configConfig, application)
 	receivedEventPubSub := pubsub.NewReceivedEventPubSub()
-	downloader := app.NewDownloader(transactionProvider, receivedEventPubSub)
 	logger := newLogrus()
 	logrusLoggingSystem := logging.NewLogrusLoggingSystem(logger)
 	loggingLogger := newSystemLogger(logrusLoggingSystem)
+	downloader := app.NewDownloader(transactionProvider, receivedEventPubSub, loggingLogger)
 	processReceivedEventHandler := app.NewProcessReceivedEventHandler(transactionProvider, loggingLogger)
 	receivedEventSubscriber := pubsub2.NewReceivedEventSubscriber(receivedEventPubSub, processReceivedEventHandler)
 	service := NewService(application, server, downloader, receivedEventSubscriber)

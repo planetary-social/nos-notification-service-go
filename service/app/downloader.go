@@ -3,14 +3,19 @@ package app
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/boreq/errors"
 	"github.com/gorilla/websocket"
 	"github.com/nbd-wtf/go-nostr"
 	"github.com/planetary-social/go-notification-service/internal"
+	"github.com/planetary-social/go-notification-service/internal/logging"
 	"github.com/planetary-social/go-notification-service/service/domain"
+)
+
+const (
+	reconnectEvery           = 1 * time.Minute
+	manageSubscriptionsEvery = 1 * time.Minute
 )
 
 type ReceivedEventPublisher interface {
@@ -20,6 +25,7 @@ type ReceivedEventPublisher interface {
 type Downloader struct {
 	transactionProvider    TransactionProvider
 	receivedEventPublisher ReceivedEventPublisher
+	logger                 logging.Logger
 
 	relayDownloaders map[domain.RelayAddress]*RelayDownloader
 }
@@ -27,10 +33,12 @@ type Downloader struct {
 func NewDownloader(
 	transaction TransactionProvider,
 	receivedEventPublisher ReceivedEventPublisher,
+	logger logging.Logger,
 ) *Downloader {
 	return &Downloader{
 		transactionProvider:    transaction,
 		receivedEventPublisher: receivedEventPublisher,
+		logger:                 logger.New("downloader"),
 
 		relayDownloaders: map[domain.RelayAddress]*RelayDownloader{},
 	}
@@ -45,6 +53,9 @@ func (d *Downloader) Run(ctx context.Context) error {
 
 		for relayAddress, relayDownloader := range d.relayDownloaders {
 			if !relayAddresses.Contains(relayAddress) {
+				d.logger.Debug().
+					WithField("relay", relayAddress.String()).
+					Message("deleting a relay downloader")
 				delete(d.relayDownloaders, relayAddress)
 				relayDownloader.Stop()
 			}
@@ -52,7 +63,16 @@ func (d *Downloader) Run(ctx context.Context) error {
 
 		for _, relayAddress := range relayAddresses.List() {
 			if _, ok := d.relayDownloaders[relayAddress]; !ok {
-				relayDownloader := NewRelayDownloader(ctx, d.transactionProvider, d.receivedEventPublisher, relayAddress)
+				d.logger.Debug().
+					WithField("relay", relayAddress.String()).
+					Message("creating a relay downloader")
+				relayDownloader := NewRelayDownloader(
+					ctx,
+					d.transactionProvider,
+					d.receivedEventPublisher,
+					d.logger,
+					relayAddress,
+				)
 				d.relayDownloaders[relayAddress] = relayDownloader
 			}
 		}
@@ -81,6 +101,7 @@ func (d *Downloader) getRelays(ctx context.Context) (*internal.Set[domain.RelayA
 type RelayDownloader struct {
 	transactionProvider    TransactionProvider
 	receivedEventPublisher ReceivedEventPublisher
+	logger                 logging.Logger
 
 	address domain.RelayAddress
 	cancel  context.CancelFunc
@@ -90,14 +111,17 @@ func NewRelayDownloader(
 	ctx context.Context,
 	transactionProvider TransactionProvider,
 	receivedEventPublisher ReceivedEventPublisher,
+	logger logging.Logger,
 	address domain.RelayAddress,
 ) *RelayDownloader {
 	ctx, cancel := context.WithCancel(ctx)
 	v := &RelayDownloader{
 		transactionProvider:    transactionProvider,
 		receivedEventPublisher: receivedEventPublisher,
-		cancel:                 cancel,
-		address:                address,
+		logger:                 logger.New(fmt.Sprintf("relayDownloader(%s)", address)),
+
+		cancel:  cancel,
+		address: address,
 	}
 	go v.run(ctx)
 	return v
@@ -106,31 +130,34 @@ func NewRelayDownloader(
 func (d *RelayDownloader) run(ctx context.Context) {
 	for {
 		if err := d.connectAndDownload(ctx); err != nil {
-			fmt.Printf("error processing relay '%s': %s\n", d.address, err)
+			d.logger.Error().
+				WithError(err).
+				Message("error connecting and downloading")
 		}
 
 		select {
 		case <-ctx.Done():
 			return
-		case <-time.After(10 * time.Second):
+		case <-time.After(reconnectEvery):
 			continue
 		}
 	}
 }
 
 func (d *RelayDownloader) connectAndDownload(ctx context.Context) error {
+	d.logger.Debug().Message("connecting")
+
 	conn, _, err := websocket.DefaultDialer.DialContext(ctx, d.address.String(), nil)
 	if err != nil {
 		return errors.Wrap(err, "error dialing the relay")
 	}
 	defer conn.Close()
 
-	activeSubscriptions := internal.NewEmptySet[domain.PublicKey]()
-	activeSubscriptionsLock := &sync.Mutex{}
-
 	go func() {
-		if err := d.manageSubs(ctx, conn, activeSubscriptions, activeSubscriptionsLock); err != nil {
-			fmt.Println("error managing subs", err)
+		if err := d.manageSubs(ctx, conn); err != nil {
+			d.logger.Error().
+				WithError(err).
+				Message("error managing subs")
 		}
 	}()
 
@@ -140,7 +167,7 @@ func (d *RelayDownloader) connectAndDownload(ctx context.Context) error {
 			return errors.Wrap(err, "error reading a message")
 		}
 
-		if err := d.handleMessage(messageBytes, activeSubscriptions, activeSubscriptionsLock); err != nil {
+		if err := d.handleMessage(messageBytes); err != nil {
 			return errors.Wrap(err, "error handling message")
 		}
 
@@ -148,11 +175,7 @@ func (d *RelayDownloader) connectAndDownload(ctx context.Context) error {
 
 }
 
-func (d *RelayDownloader) handleMessage(
-	messageBytes []byte,
-	activeSubscriptions *internal.Set[domain.PublicKey],
-	activeSubscriptionsLock *sync.Mutex,
-) error {
+func (d *RelayDownloader) handleMessage(messageBytes []byte) error {
 	envelope := nostr.ParseMessage(messageBytes)
 	if envelope == nil {
 		return errors.New("error parsing message, we are never going to find out what error unfortunately due to the design of this library")
@@ -160,16 +183,9 @@ func (d *RelayDownloader) handleMessage(
 
 	switch v := envelope.(type) {
 	case *nostr.EOSEEnvelope:
-		publicKey, err := domain.NewPublicKey(string(*v))
-		if err != nil {
-			return errors.Wrap(err, "invalid public key; unexpected subscription id since we only create them from public keys")
-		}
-
-		activeSubscriptionsLock.Lock()
-		activeSubscriptionsLock.Unlock()
-		activeSubscriptions.Delete(publicKey)
-		// todo there is a bug here, we may have recreated the sub and this
-		// message refers to the previous sub
+		d.logger.Debug().
+			WithField("subscription", string(*v)).
+			Message("received EOSE")
 	case *nostr.EventEnvelope:
 		event, err := domain.NewEvent(v.Event)
 		if err != nil {
@@ -178,7 +194,10 @@ func (d *RelayDownloader) handleMessage(
 
 		d.receivedEventPublisher.Publish(d.address, event)
 	default:
-		fmt.Println("unknown message:", string(messageBytes))
+		d.logger.
+			Error().
+			WithField("message", string(messageBytes)).
+			Message("unhandled message")
 	}
 
 	return nil
@@ -187,10 +206,10 @@ func (d *RelayDownloader) handleMessage(
 func (d *RelayDownloader) manageSubs(
 	ctx context.Context,
 	conn *websocket.Conn,
-	activeSubscriptions *internal.Set[domain.PublicKey],
-	activeSubscriptionsLock *sync.Mutex,
 ) error {
 	defer conn.Close()
+
+	activeSubscriptions := internal.NewEmptySet[domain.PublicKey]()
 
 	for {
 		publicKeys, err := d.getPublicKeys(ctx)
@@ -198,8 +217,15 @@ func (d *RelayDownloader) manageSubs(
 			return errors.Wrap(err, "error getting public keys")
 		}
 
-		if err := d.updateSubs(conn, activeSubscriptions, activeSubscriptionsLock, publicKeys); err != nil {
+		if err := d.updateSubs(conn, activeSubscriptions, publicKeys); err != nil {
 			return errors.Wrap(err, "error updating subscriptions")
+		}
+
+		select {
+		case <-time.After(manageSubscriptionsEvery):
+			continue
+		case <-ctx.Done():
+			return ctx.Err()
 		}
 	}
 }
@@ -209,14 +235,14 @@ const howFarIntoThePastToLook = 7 * 24 * time.Hour
 func (d *RelayDownloader) updateSubs(
 	conn *websocket.Conn,
 	activeSubscriptions *internal.Set[domain.PublicKey],
-	activeSubscriptionsLock *sync.Mutex,
 	publicKeys *internal.Set[domain.PublicKey],
 ) error {
-	activeSubscriptionsLock.Lock()
-	defer activeSubscriptionsLock.Unlock()
-
 	for _, publicKey := range activeSubscriptions.List() {
 		if !publicKeys.Contains(publicKey) {
+			d.logger.Debug().
+				WithField("publicKey", publicKey).
+				Message("closing subscription")
+
 			envelope := nostr.CloseEnvelope(publicKey.Hex())
 
 			envelopeJSON, err := envelope.MarshalJSON()
@@ -234,6 +260,10 @@ func (d *RelayDownloader) updateSubs(
 
 	for _, publicKey := range publicKeys.List() {
 		if ok := activeSubscriptions.Contains(publicKey); !ok {
+			d.logger.Debug().
+				WithField("publicKey", publicKey).
+				Message("opening subscription")
+
 			t := nostr.Timestamp(time.Now().Add(-howFarIntoThePastToLook).Unix())
 
 			envelope := nostr.ReqEnvelope{

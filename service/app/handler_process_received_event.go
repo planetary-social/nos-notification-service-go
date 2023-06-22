@@ -28,14 +28,15 @@ func NewProcessReceivedEventHandler(
 ) *ProcessReceivedEventHandler {
 	return &ProcessReceivedEventHandler{
 		transactionProvider: transactionProvider,
-		logger:              logger,
+		logger:              logger.New("processReceivedEventHandler"),
 	}
 }
 
 func (h *ProcessReceivedEventHandler) Handle(ctx context.Context, cmd ProcessReceivedEvent) error {
 	h.logger.Debug().
 		WithField("relay", cmd.relay.String()).
-		WithField("event", cmd.event.Id().Hex()).
+		WithField("event.id", cmd.event.Id().Hex()).
+		WithField("event.kind", cmd.event.Kind().Int()).
 		Message("processing received event")
 
 	if err := h.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {

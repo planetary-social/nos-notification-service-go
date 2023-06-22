@@ -3,8 +3,8 @@ package pubsub
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/boreq/errors"
 	"github.com/planetary-social/go-notification-service/service/adapters/pubsub"
 	"github.com/planetary-social/go-notification-service/service/app"
 )
@@ -18,15 +18,21 @@ type ReceivedEventSubscriber struct {
 	handler ProcessReceivedEventHandler
 }
 
-func NewReceivedEventSubscriber(pubsub *pubsub.ReceivedEventPubSub, handler ProcessReceivedEventHandler) *ReceivedEventSubscriber {
-	return &ReceivedEventSubscriber{pubsub: pubsub, handler: handler}
+func NewReceivedEventSubscriber(
+	pubsub *pubsub.ReceivedEventPubSub,
+	handler ProcessReceivedEventHandler,
+) *ReceivedEventSubscriber {
+	return &ReceivedEventSubscriber{
+		pubsub:  pubsub,
+		handler: handler,
+	}
 }
 
 func (p *ReceivedEventSubscriber) Run(ctx context.Context) error {
 	for v := range p.pubsub.SubscribeToRequests(ctx) {
 		cmd := app.NewProcessReceivedEvent(v.Relay, v.Event)
 		if err := p.handler.Handle(ctx, cmd); err != nil {
-			fmt.Println("error processing event", err)
+			return errors.Wrap(err, "received event handler returned an error")
 		}
 	}
 	return nil
