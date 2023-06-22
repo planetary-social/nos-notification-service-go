@@ -10,6 +10,7 @@ import (
 	"context"
 
 	firestore2 "cloud.google.com/go/firestore"
+	"github.com/planetary-social/go-notification-service/internal/logging"
 	"github.com/planetary-social/go-notification-service/service/adapters/firestore"
 	"github.com/planetary-social/go-notification-service/service/adapters/pubsub"
 	"github.com/planetary-social/go-notification-service/service/app"
@@ -44,7 +45,10 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	server := http.NewServer(configConfig, application)
 	receivedEventPubSub := pubsub.NewReceivedEventPubSub()
 	downloader := app.NewDownloader(transactionProvider, receivedEventPubSub)
-	processReceivedEventHandler := app.NewProcessReceivedEventHandler(transactionProvider)
+	logger := newLogrus()
+	logrusLoggingSystem := logging.NewLogrusLoggingSystem(logger)
+	loggingLogger := newSystemLogger(logrusLoggingSystem)
+	processReceivedEventHandler := app.NewProcessReceivedEventHandler(transactionProvider, loggingLogger)
 	receivedEventSubscriber := pubsub2.NewReceivedEventSubscriber(receivedEventPubSub, processReceivedEventHandler)
 	service := NewService(application, server, downloader, receivedEventSubscriber)
 	return service, func() {

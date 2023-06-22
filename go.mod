@@ -10,6 +10,8 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/nbd-wtf/go-nostr v0.18.10
+	github.com/rs/zerolog v1.29.1
+	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.4
 	google.golang.org/api v0.123.0
 )
@@ -39,6 +41,8 @@ require (
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
+	github.com/mattn/go-colorable v0.1.12 // indirect
+	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/puzpuzpuz/xsync v1.5.2 // indirect
 	github.com/tidwall/gjson v1.14.4 // indirect
