@@ -36,6 +36,10 @@ func NewRegistrationFromEvent(event Event) (Registration, error) {
 		return Registration{}, errors.Wrap(err, "error creating relay addresses")
 	}
 
+	if event.PubKey() != publicKey {
+		return Registration{}, errors.New("public key doesn't match public key from event")
+	}
+
 	return Registration{
 		apnsToken: apnsToken,
 		publicKey: publicKey,
