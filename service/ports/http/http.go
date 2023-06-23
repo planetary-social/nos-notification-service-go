@@ -3,13 +3,13 @@ package http
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 
 	"github.com/boreq/errors"
 	"github.com/gorilla/websocket"
 	"github.com/nbd-wtf/go-nostr"
+	"github.com/planetary-social/go-notification-service/internal/logging"
 	"github.com/planetary-social/go-notification-service/service/app"
 	"github.com/planetary-social/go-notification-service/service/config"
 	"github.com/planetary-social/go-notification-service/service/domain"
@@ -18,12 +18,18 @@ import (
 type Server struct {
 	config config.Config
 	app    app.Application
+	logger logging.Logger
 }
 
-func NewServer(config config.Config, app app.Application) Server {
+func NewServer(
+	config config.Config,
+	app app.Application,
+	logger logging.Logger,
+) Server {
 	return Server{
 		config: config,
 		app:    app,
+		logger: logger.New("server"),
 	}
 }
 
@@ -62,28 +68,32 @@ func (s *Server) serveWs(ctx context.Context, rw http.ResponseWriter, r *http.Re
 
 	conn, err := upgrader.Upgrade(rw, r, nil)
 	if err != nil {
-		log.Println("error upgrading the connection:", err)
+		s.logger.Error().WithError(err).Message("error upgrading the connection")
 		return
 	}
 
 	defer func() {
-		err := conn.Close()
-		fmt.Println("closed the connection, error:", err)
+		if err := conn.Close(); err != nil {
+			s.logger.Error().WithError(err).Message("error closing the connection")
+		}
 	}()
 
 	if err := s.handleConnection(ctx, conn); err != nil {
-		fmt.Println("error handling the connection:", err)
+		closeErr := &websocket.CloseError{}
+		if !errors.As(err, &closeErr) || closeErr.Code != websocket.CloseNormalClosure {
+			s.logger.Error().WithError(err).Message("error handling the connection")
+		}
 	}
 }
 
 func (s *Server) handleConnection(ctx context.Context, conn *websocket.Conn) error {
+	s.logger.Debug().Message("accepted websocket connection")
+
 	for {
 		_, messageBytes, err := conn.ReadMessage()
 		if err != nil {
 			return errors.Wrap(err, "error reading the websocket message")
 		}
-
-		fmt.Printf("received websocket message: %s\n", string(messageBytes))
 
 		message := nostr.ParseMessage(messageBytes)
 		if message == nil {

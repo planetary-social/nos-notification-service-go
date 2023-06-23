@@ -31,7 +31,10 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	}
 	adaptersFactoryFn := newAdaptersFactoryFn()
 	transactionProvider := firestore.NewTransactionProvider(client, adaptersFactoryFn)
-	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider)
+	logger := newLogrus()
+	logrusLoggingSystem := logging.NewLogrusLoggingSystem(logger)
+	loggingLogger := newSystemLogger(logrusLoggingSystem)
+	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider, loggingLogger)
 	commands := app.Commands{
 		SaveRegistration: saveRegistrationHandler,
 	}
@@ -45,11 +48,8 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 		Commands: commands,
 		Queries:  queries,
 	}
-	server := http.NewServer(configConfig, application)
+	server := http.NewServer(configConfig, application, loggingLogger)
 	receivedEventPubSub := pubsub.NewReceivedEventPubSub()
-	logger := newLogrus()
-	logrusLoggingSystem := logging.NewLogrusLoggingSystem(logger)
-	loggingLogger := newSystemLogger(logrusLoggingSystem)
 	downloader := app.NewDownloader(transactionProvider, receivedEventPubSub, loggingLogger)
 	generator := notifications.NewGenerator(loggingLogger)
 	apnsAPNS, err := apns.NewAPNS(configConfig, loggingLogger)

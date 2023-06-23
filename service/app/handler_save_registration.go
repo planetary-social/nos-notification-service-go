@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 
+	"github.com/planetary-social/go-notification-service/internal/logging"
 	"github.com/planetary-social/go-notification-service/service/domain"
 )
 
@@ -16,17 +17,26 @@ func NewSaveRegistration(registration domain.Registration) SaveRegistration {
 
 type SaveRegistrationHandler struct {
 	transactionProvider TransactionProvider
+	logger              logging.Logger
 }
 
 func NewSaveRegistrationHandler(
 	transactionProvider TransactionProvider,
+	logger logging.Logger,
 ) *SaveRegistrationHandler {
 	return &SaveRegistrationHandler{
 		transactionProvider: transactionProvider,
+		logger:              logger.New("saveRegistrationHandler"),
 	}
 }
 
 func (h *SaveRegistrationHandler) Handle(ctx context.Context, cmd SaveRegistration) error {
+	h.logger.Debug().
+		WithField("apnsToken", cmd.registration.APNSToken().Hex()).
+		WithField("publicKey", cmd.registration.PublicKey().Hex()).
+		WithField("relays", cmd.registration.Relays()).
+		Message("saving registration")
+
 	return h.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
 		return adapters.Registrations.Save(cmd.registration)
 	})
