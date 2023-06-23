@@ -53,8 +53,7 @@ func (r *RegistrationRepository) Save(registration domain.Registration) error {
 func (r *RegistrationRepository) saveUnderTokens(registration domain.Registration) error {
 	tokenDocPath := r.client.Collection(collectionAPNSTokens).Doc(registration.APNSToken().Hex())
 	tokenDocData := map[string]any{
-		"token":  registration.APNSToken().Hex(),
-		"locale": registration.Locale().String(),
+		"token": registration.APNSToken().Hex(),
 	}
 	if err := r.tx.Set(tokenDocPath, tokenDocData, firestore.MergeAll); err != nil {
 		return errors.Wrap(err, "error updating the token doc")

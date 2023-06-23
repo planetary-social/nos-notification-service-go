@@ -9,7 +9,6 @@ import (
 	"github.com/nbd-wtf/go-nostr"
 	"github.com/nbd-wtf/go-nostr/nip19"
 	"github.com/planetary-social/go-notification-service/cmd/notification-service/di"
-	"github.com/planetary-social/go-notification-service/internal/fixtures"
 	"github.com/planetary-social/go-notification-service/service/app"
 	"github.com/planetary-social/go-notification-service/service/config"
 	"github.com/planetary-social/go-notification-service/service/domain"
@@ -80,14 +79,13 @@ func addMyRegistration(ctx context.Context, service di.Service) {
       ]
     }
   ],
-  "locale": "%s",
   "apnsToken": "%s"
 }
 `,
 			publicKey.Hex(),
 			relayAddress.String(),
-			fixtures.SomeString(),
-			fixtures.SomeString()),
+			"deadbeef",
+		),
 	}
 
 	err = libEvent.Sign(secretKey)

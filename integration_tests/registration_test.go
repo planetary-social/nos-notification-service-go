@@ -44,13 +44,11 @@ func TestRegistration(t *testing.T) {
       ]
     }
   ],
-  "locale": "%s",
   "apnsToken": "%s"
 }
 `,
 			publicKey.Hex(),
 			relayAddress.String(),
-			fixtures.SomeString(),
 			fixtures.SomeString()),
 	}
 

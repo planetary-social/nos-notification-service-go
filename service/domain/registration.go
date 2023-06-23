@@ -12,7 +12,6 @@ import (
 // probably require separate events signed with a correct public key
 type Registration struct {
 	apnsToken  APNSToken
-	locale     Locale
 	publicKeys []PublicKeyWithRelays
 }
 
@@ -27,11 +26,6 @@ func NewRegistrationFromEvent(event Event) (Registration, error) {
 		return Registration{}, errors.Wrap(err, "error creating public keys with relays")
 	}
 
-	locale, err := NewLocale(v.Locale)
-	if err != nil {
-		return Registration{}, errors.Wrap(err, "error creating locale")
-	}
-
 	apnsToken, err := NewAPNSTokenFromHex(v.APNSToken)
 	if err != nil {
 		return Registration{}, errors.Wrap(err, "error creating APNS token")
@@ -39,7 +33,6 @@ func NewRegistrationFromEvent(event Event) (Registration, error) {
 
 	return Registration{
 		publicKeys: publicKeysWithRelays,
-		locale:     locale,
 		apnsToken:  apnsToken,
 	}, nil
 }
@@ -78,10 +71,6 @@ func newPublicKeysWithRelays(v registrationTransport) ([]PublicKeyWithRelays, er
 
 func (r Registration) APNSToken() APNSToken {
 	return r.apnsToken
-}
-
-func (r Registration) Locale() Locale {
-	return r.locale
 }
 
 func (r Registration) PublicKeys() []PublicKeyWithRelays {
@@ -126,7 +115,6 @@ func (r RelayAddress) String() string {
 
 type registrationTransport struct {
 	PublicKeys []publicKeysWithRelaysTransport `json:"publicKeys"`
-	Locale     string                          `json:"locale"`
 	APNSToken  string                          `json:"apnsToken"`
 }
 
