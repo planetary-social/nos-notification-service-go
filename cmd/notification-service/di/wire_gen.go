@@ -10,11 +10,14 @@ import (
 	"context"
 
 	firestore2 "cloud.google.com/go/firestore"
+	"github.com/google/wire"
 	"github.com/planetary-social/go-notification-service/internal/logging"
+	"github.com/planetary-social/go-notification-service/service/adapters/apns"
 	"github.com/planetary-social/go-notification-service/service/adapters/firestore"
 	"github.com/planetary-social/go-notification-service/service/adapters/pubsub"
 	"github.com/planetary-social/go-notification-service/service/app"
 	"github.com/planetary-social/go-notification-service/service/config"
+	"github.com/planetary-social/go-notification-service/service/domain/notifications"
 	"github.com/planetary-social/go-notification-service/service/ports/http"
 	pubsub2 "github.com/planetary-social/go-notification-service/service/ports/pubsub"
 )
@@ -48,7 +51,12 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	logrusLoggingSystem := logging.NewLogrusLoggingSystem(logger)
 	loggingLogger := newSystemLogger(logrusLoggingSystem)
 	downloader := app.NewDownloader(transactionProvider, receivedEventPubSub, loggingLogger)
-	processReceivedEventHandler := app.NewProcessReceivedEventHandler(transactionProvider, loggingLogger)
+	generator := notifications.NewGenerator()
+	apnsAPNS, err := apns.NewAPNS(configConfig)
+	if err != nil {
+		return Service{}, nil, err
+	}
+	processReceivedEventHandler := app.NewProcessReceivedEventHandler(transactionProvider, generator, apnsAPNS, loggingLogger)
 	receivedEventSubscriber := pubsub2.NewReceivedEventSubscriber(receivedEventPubSub, processReceivedEventHandler)
 	service := NewService(application, server, downloader, receivedEventSubscriber)
 	return service, func() {
@@ -57,12 +65,20 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 
 func buildTransactionFirestoreAdapters(client *firestore2.Client, tx *firestore2.Transaction) (app.Adapters, error) {
 	relayRepository := firestore.NewRelayRepository(client, tx)
-	registrationRepository := firestore.NewRegistrationRepository(client, tx, relayRepository)
+	publicKeyRepository := firestore.NewPublicKeyRepository(client, tx)
+	registrationRepository := firestore.NewRegistrationRepository(client, tx, relayRepository, publicKeyRepository)
 	eventRepository := firestore.NewEventRepository(client, tx, relayRepository)
 	adapters := app.Adapters{
 		Registrations: registrationRepository,
 		Events:        eventRepository,
 		Relays:        relayRepository,
+		PublicKeys:    publicKeyRepository,
 	}
 	return adapters, nil
 }
+
+// wire.go:
+
+var downloaderSet = wire.NewSet(app.NewDownloader)
+
+var generatorSet = wire.NewSet(notifications.NewGenerator)

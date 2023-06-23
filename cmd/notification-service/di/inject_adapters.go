@@ -3,6 +3,7 @@ package di
 import (
 	googlefirestore "cloud.google.com/go/firestore"
 	"github.com/google/wire"
+	"github.com/planetary-social/go-notification-service/service/adapters/apns"
 	"github.com/planetary-social/go-notification-service/service/adapters/firestore"
 	"github.com/planetary-social/go-notification-service/service/app"
 )
@@ -31,4 +32,11 @@ var firestoreTxAdaptersSet = wire.NewSet(
 
 	firestore.NewRelayRepository,
 	wire.Bind(new(app.RelayRepository), new(*firestore.RelayRepository)),
+
+	firestore.NewPublicKeyRepository,
+	wire.Bind(new(app.PublicKeyRepository), new(*firestore.PublicKeyRepository)),
+)
+
+var adaptersSet = wire.NewSet(
+	apns.NewAPNS,
 )

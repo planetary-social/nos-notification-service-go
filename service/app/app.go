@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 
+	"github.com/boreq/errors"
 	"github.com/planetary-social/go-notification-service/service/domain"
 )
 
@@ -14,6 +15,7 @@ type Adapters struct {
 	Registrations RegistrationRepository
 	Events        EventRepository
 	Relays        RelayRepository
+	PublicKeys    PublicKeyRepository
 }
 
 type RegistrationRepository interface {
@@ -23,6 +25,13 @@ type RegistrationRepository interface {
 type RelayRepository interface {
 	GetRelays(ctx context.Context) ([]domain.RelayAddress, error)
 	GetPublicKeys(ctx context.Context, address domain.RelayAddress) ([]domain.PublicKey, error)
+}
+
+var APNSTokenNotFoundErr = errors.New("apns token not found")
+
+type PublicKeyRepository interface {
+	// GetAPNSToken returns APNSTokenNotFoundErr if the token doesn't exist.
+	GetAPNSToken(context.Context, domain.PublicKey) (domain.APNSToken, error)
 }
 
 type EventRepository interface {

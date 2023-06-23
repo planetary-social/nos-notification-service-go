@@ -10,18 +10,21 @@ type RegistrationRepository struct {
 	client *firestore.Client
 	tx     *firestore.Transaction
 
-	relayRepository *RelayRepository
+	relayRepository     *RelayRepository
+	publicKeyRepository *PublicKeyRepository
 }
 
 func NewRegistrationRepository(
 	client *firestore.Client,
 	tx *firestore.Transaction,
 	relayRepository *RelayRepository,
+	publicKeyRepository *PublicKeyRepository,
 ) *RegistrationRepository {
 	return &RegistrationRepository{
-		client:          client,
-		tx:              tx,
-		relayRepository: relayRepository,
+		client:              client,
+		tx:                  tx,
+		relayRepository:     relayRepository,
+		publicKeyRepository: publicKeyRepository,
 	}
 }
 
@@ -40,13 +43,17 @@ func (r *RegistrationRepository) Save(registration domain.Registration) error {
 		return errors.Wrap(err, "error saving under relays")
 	}
 
+	if err := r.publicKeyRepository.Save(registration); err != nil {
+		return errors.Wrap(err, "error saving under relays")
+	}
+
 	return nil
 }
 
 func (r *RegistrationRepository) saveUnderTokens(registration domain.Registration) error {
-	tokenDocPath := r.client.Collection(collectionAPNSTokens).Doc(registration.APNSToken().String())
+	tokenDocPath := r.client.Collection(collectionAPNSTokens).Doc(registration.APNSToken().Hex())
 	tokenDocData := map[string]any{
-		"token":  registration.APNSToken().String(),
+		"token":  registration.APNSToken().Hex(),
 		"locale": registration.Locale().String(),
 	}
 	if err := r.tx.Set(tokenDocPath, tokenDocData, firestore.MergeAll); err != nil {

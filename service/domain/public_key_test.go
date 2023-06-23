@@ -16,10 +16,10 @@ func TestPublicKey_IsCaseInsensitive(t *testing.T) {
 
 	require.NotEqual(t, hexLower, hexUpper)
 
-	a, err := domain.NewPublicKey(hexLower)
+	a, err := domain.NewPublicKeyFromHex(hexLower)
 	require.NoError(t, err)
 
-	b, err := domain.NewPublicKey(hexUpper)
+	b, err := domain.NewPublicKeyFromHex(hexUpper)
 	require.NoError(t, err)
 
 	require.Equal(t, a, b)

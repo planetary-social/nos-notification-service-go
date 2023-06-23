@@ -32,7 +32,7 @@ func NewEvent(libevent nostr.Event) (Event, error) {
 		return Event{}, errors.Wrap(err, "error creating an event id")
 	}
 
-	pubKey, err := NewPublicKey(libevent.PubKey)
+	pubKey, err := NewPublicKeyFromHex(libevent.PubKey)
 	if err != nil {
 		return Event{}, errors.Wrap(err, "error creating a pub key")
 	}

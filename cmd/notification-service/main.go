@@ -24,7 +24,7 @@ func main() {
 
 func run() error {
 	ctx := context.Background()
-	cfg, err := config.NewConfig("", "test-project-id")
+	cfg, err := config.NewConfig("", "test-project-id", "some.topic", "./cert")
 	if err != nil {
 		return errors.Wrap(err, "error creating a config")
 	}
@@ -54,7 +54,7 @@ func addMyRegistration(ctx context.Context, service di.Service) {
 		panic(err)
 	}
 
-	publicKey, err := domain.NewPublicKey(publicKeyString)
+	publicKey, err := domain.NewPublicKeyFromHex(publicKeyString)
 	if err != nil {
 		panic(err)
 	}

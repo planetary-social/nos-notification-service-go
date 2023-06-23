@@ -28,7 +28,7 @@ func SomeKeyPair() (publicKey domain.PublicKey, secretKeyHex string) {
 	if err != nil {
 		panic(err)
 	}
-	v, err := domain.NewPublicKey(p)
+	v, err := domain.NewPublicKeyFromHex(p)
 	if err != nil {
 		panic(err)
 	}

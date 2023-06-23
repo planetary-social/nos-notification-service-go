@@ -32,7 +32,7 @@ func NewRegistrationFromEvent(event Event) (Registration, error) {
 		return Registration{}, errors.Wrap(err, "error creating locale")
 	}
 
-	apnsToken, err := NewAPNSToken(v.APNSToken)
+	apnsToken, err := NewAPNSTokenFromHex(v.APNSToken)
 	if err != nil {
 		return Registration{}, errors.Wrap(err, "error creating APNS token")
 	}
@@ -47,7 +47,7 @@ func NewRegistrationFromEvent(event Event) (Registration, error) {
 func newPublicKeysWithRelays(v registrationTransport) ([]PublicKeyWithRelays, error) {
 	var publicKeysWithRelays []PublicKeyWithRelays
 	for _, publicKeyWithRelaysTransport := range v.PublicKeys {
-		publicKey, err := NewPublicKey(publicKeyWithRelaysTransport.PublicKey)
+		publicKey, err := NewPublicKeyFromHex(publicKeyWithRelaysTransport.PublicKey)
 		if err != nil {
 			return nil, errors.Wrap(err, "error creating public key")
 		}
