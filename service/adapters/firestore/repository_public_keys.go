@@ -25,16 +25,15 @@ func NewPublicKeyRepository(client *firestore.Client, tx *firestore.Transaction)
 }
 
 func (r *PublicKeyRepository) Save(registration domain.Registration) error {
-	for _, pubKeyWithRelays := range registration.PublicKeys() {
-		pubKeyDocPath := r.client.Collection(collectionPublicKeys).Doc(pubKeyWithRelays.PublicKey().Hex())
-		pubKeyDocData := map[string]any{
-			"publicKey": pubKeyWithRelays.PublicKey().Hex(),
-			"token":     registration.APNSToken().Hex(),
-		}
-		if err := r.tx.Set(pubKeyDocPath, pubKeyDocData, firestore.MergeAll); err != nil {
-			return errors.Wrap(err, "error creating the public key doc")
-		}
+	pubKeyDocPath := r.client.Collection(collectionPublicKeys).Doc(registration.PublicKey().Hex())
+	pubKeyDocData := map[string]any{
+		"publicKey": registration.PublicKey().Hex(),
+		"token":     registration.APNSToken().Hex(),
 	}
+	if err := r.tx.Set(pubKeyDocPath, pubKeyDocData, firestore.MergeAll); err != nil {
+		return errors.Wrap(err, "error creating the public key doc")
+	}
+
 	return nil
 }
 

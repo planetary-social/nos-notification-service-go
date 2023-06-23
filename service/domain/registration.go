@@ -9,10 +9,10 @@ import (
 )
 
 // todo make sure that the registration was sent by one of those public keys?
-// probably require separate events signed with a correct public key
 type Registration struct {
-	apnsToken  APNSToken
-	publicKeys []PublicKeyWithRelays
+	apnsToken APNSToken
+	publicKey PublicKey
+	relays    []RelayAddress
 }
 
 func NewRegistrationFromEvent(event Event) (Registration, error) {
@@ -21,78 +21,54 @@ func NewRegistrationFromEvent(event Event) (Registration, error) {
 		return Registration{}, errors.Wrap(err, "error unmarshaling content")
 	}
 
-	publicKeysWithRelays, err := newPublicKeysWithRelays(v)
-	if err != nil {
-		return Registration{}, errors.Wrap(err, "error creating public keys with relays")
-	}
-
 	apnsToken, err := NewAPNSTokenFromHex(v.APNSToken)
 	if err != nil {
-		return Registration{}, errors.Wrap(err, "error creating APNS token")
+		return Registration{}, errors.Wrap(err, "error creating an apns token")
+	}
+
+	publicKey, err := NewPublicKeyFromHex(v.PublicKey)
+	if err != nil {
+		return Registration{}, errors.Wrap(err, "error creating a public key")
+	}
+
+	relays, err := newRelays(v)
+	if err != nil {
+		return Registration{}, errors.Wrap(err, "error creating relay addresses")
 	}
 
 	return Registration{
-		publicKeys: publicKeysWithRelays,
-		apnsToken:  apnsToken,
+		apnsToken: apnsToken,
+		publicKey: publicKey,
+		relays:    relays,
 	}, nil
 }
 
-func newPublicKeysWithRelays(v registrationTransport) ([]PublicKeyWithRelays, error) {
-	var publicKeysWithRelays []PublicKeyWithRelays
-	for _, publicKeyWithRelaysTransport := range v.PublicKeys {
-		publicKey, err := NewPublicKeyFromHex(publicKeyWithRelaysTransport.PublicKey)
+func newRelays(v registrationTransport) ([]RelayAddress, error) {
+	var relays []RelayAddress
+	for _, relayTransport := range v.Relays {
+		address, err := NewRelayAddress(relayTransport.Address)
 		if err != nil {
-			return nil, errors.Wrap(err, "error creating public key")
+			return nil, errors.Wrap(err, "error creating relay address")
 		}
-
-		var relays []RelayAddress
-		for _, relayTransport := range publicKeyWithRelaysTransport.Relays {
-			address, err := NewRelayAddress(relayTransport.Address)
-			if err != nil {
-				return nil, errors.Wrap(err, "error creating relay address")
-			}
-			relays = append(relays, address)
-		}
-
-		v, err := NewPublicKeyWithRelays(publicKey, relays)
-		if err != nil {
-			return nil, errors.Wrap(err, "error creating public key with relays")
-		}
-
-		publicKeysWithRelays = append(publicKeysWithRelays, v)
+		relays = append(relays, address)
 	}
 
-	if len(publicKeysWithRelays) == 0 {
-		return nil, errors.New("empty public keys with relay")
+	if len(relays) == 0 {
+		return nil, errors.New("missing relays")
 	}
 
-	return publicKeysWithRelays, nil
+	return relays, nil
 }
 
 func (r Registration) APNSToken() APNSToken {
 	return r.apnsToken
 }
 
-func (r Registration) PublicKeys() []PublicKeyWithRelays {
-	return internal.CopySlice(r.publicKeys)
-}
-
-type PublicKeyWithRelays struct {
-	publicKey PublicKey
-	relays    []RelayAddress
-}
-
-func NewPublicKeyWithRelays(publicKey PublicKey, relays []RelayAddress) (PublicKeyWithRelays, error) {
-	// todo validate e.g. relays can't be empty
-
-	return PublicKeyWithRelays{publicKey: publicKey, relays: relays}, nil
-}
-
-func (p PublicKeyWithRelays) PublicKey() PublicKey {
+func (p Registration) PublicKey() PublicKey {
 	return p.publicKey
 }
 
-func (p PublicKeyWithRelays) Relays() []RelayAddress {
+func (p Registration) Relays() []RelayAddress {
 	return internal.CopySlice(p.relays)
 }
 
@@ -114,11 +90,7 @@ func (r RelayAddress) String() string {
 }
 
 type registrationTransport struct {
-	PublicKeys []publicKeysWithRelaysTransport `json:"publicKeys"`
-	APNSToken  string                          `json:"apnsToken"`
-}
-
-type publicKeysWithRelaysTransport struct {
+	APNSToken string           `json:"apnsToken"`
 	PublicKey string           `json:"publicKey"`
 	Relays    []relayTransport `json:"relays"`
 }

@@ -59,25 +59,23 @@ func (r *RegistrationRepository) saveUnderTokens(registration domain.Registratio
 		return errors.Wrap(err, "error updating the token doc")
 	}
 
-	for _, pubKeyWithRelays := range registration.PublicKeys() {
-		pubKeyHex := pubKeyWithRelays.PublicKey().Hex()
+	pubKeyHex := registration.PublicKey().Hex()
 
-		publicKeyDocPath := tokenDocPath.Collection(collectionAPNSTokensPublicKeys).Doc(pubKeyHex)
-		publicKeyDocData := map[string]any{
-			"publicKey": pubKeyHex,
+	publicKeyDocPath := tokenDocPath.Collection(collectionAPNSTokensPublicKeys).Doc(pubKeyHex)
+	publicKeyDocData := map[string]any{
+		"publicKey": pubKeyHex,
+	}
+	if err := r.tx.Set(publicKeyDocPath, publicKeyDocData, firestore.MergeAll); err != nil {
+		return errors.Wrap(err, "error creating the key doc")
+	}
+
+	for _, relayAddress := range registration.Relays() {
+		relayDocPath := publicKeyDocPath.Collection(collectionAPNSTokensPublicKeysRelays).Doc(relayAddressAsKey(relayAddress))
+		relayDocData := map[string]any{
+			"address": relayAddress.String(),
 		}
-		if err := r.tx.Set(publicKeyDocPath, publicKeyDocData, firestore.MergeAll); err != nil {
+		if err := r.tx.Set(relayDocPath, relayDocData, firestore.MergeAll); err != nil {
 			return errors.Wrap(err, "error creating the key doc")
-		}
-
-		for _, relayAddress := range pubKeyWithRelays.Relays() {
-			relayDocPath := publicKeyDocPath.Collection(collectionAPNSTokensPublicKeysRelays).Doc(relayAddressAsKey(relayAddress))
-			relayDocData := map[string]any{
-				"address": relayAddress.String(),
-			}
-			if err := r.tx.Set(relayDocPath, relayDocData, firestore.MergeAll); err != nil {
-				return errors.Wrap(err, "error creating the key doc")
-			}
 		}
 	}
 
