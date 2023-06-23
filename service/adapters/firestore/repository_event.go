@@ -45,7 +45,7 @@ func (e *EventRepository) Save(event domain.Event) error {
 func (e *EventRepository) Exists(ctx context.Context, id domain.EventId) (bool, error) {
 	_, err := e.client.Collection(collectionEvents).Doc(id.Hex()).Get(ctx)
 	if err != nil {
-		if status.Code(err) != codes.NotFound {
+		if status.Code(err) == codes.NotFound {
 			return false, nil
 		}
 		return false, errors.Wrap(err, "error checking if document exists")
