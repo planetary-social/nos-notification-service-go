@@ -6,6 +6,7 @@ require (
 	cloud.google.com/go/firestore v1.10.0
 	github.com/boreq/errors v0.1.0
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1
+	github.com/google/uuid v1.3.0
 	github.com/google/wire v0.5.0
 	github.com/gorilla/websocket v1.5.0
 	github.com/hashicorp/go-multierror v1.1.1

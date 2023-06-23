@@ -13,6 +13,14 @@ func NewEventKind(k int) (EventKind, error) {
 	return EventKind{k}, nil
 }
 
+func MustNewEventKind(k int) EventKind {
+	v, err := NewEventKind(k)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
 func (k EventKind) Int() int {
 	return k.k
 }

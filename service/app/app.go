@@ -5,6 +5,7 @@ import (
 
 	"github.com/boreq/errors"
 	"github.com/planetary-social/go-notification-service/service/domain"
+	"github.com/planetary-social/go-notification-service/service/domain/notifications"
 )
 
 type TransactionProvider interface {
@@ -35,7 +36,9 @@ type PublicKeyRepository interface {
 }
 
 type EventRepository interface {
-	Save(relay domain.RelayAddress, event domain.Event) error
+	Save(event domain.Event) error
+	Exists(ctx context.Context, id domain.EventId) (bool, error)
+	SaveNotificationForEvent(notification notifications.Notification) error
 }
 
 type Application struct {

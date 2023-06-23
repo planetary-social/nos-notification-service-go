@@ -51,8 +51,8 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	logrusLoggingSystem := logging.NewLogrusLoggingSystem(logger)
 	loggingLogger := newSystemLogger(logrusLoggingSystem)
 	downloader := app.NewDownloader(transactionProvider, receivedEventPubSub, loggingLogger)
-	generator := notifications.NewGenerator()
-	apnsAPNS, err := apns.NewAPNS(configConfig)
+	generator := notifications.NewGenerator(loggingLogger)
+	apnsAPNS, err := apns.NewAPNS(configConfig, loggingLogger)
 	if err != nil {
 		return Service{}, nil, err
 	}

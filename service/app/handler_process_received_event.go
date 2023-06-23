@@ -53,6 +53,15 @@ func (h *ProcessReceivedEventHandler) Handle(ctx context.Context, cmd ProcessRec
 	}
 
 	if err := h.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
+		exists, err := adapters.Events.Exists(ctx, cmd.event.Id())
+		if err != nil {
+			return errors.Wrap(err, "error checking if event exists")
+		}
+
+		if exists {
+			return nil
+		}
+
 		for _, mention := range mentions {
 			token, err := adapters.PublicKeys.GetAPNSToken(ctx, mention)
 			if err != nil {
@@ -68,17 +77,23 @@ func (h *ProcessReceivedEventHandler) Handle(ctx context.Context, cmd ProcessRec
 			}
 
 			for _, notification := range notifications {
-				id, err := h.apns.SendNotification(notification)
-				if err != nil {
+				// todo send via pubsub instead
+				if err := h.apns.SendNotification(notification); err != nil {
 					return errors.Wrap(err, "error sending a notification")
 				}
 
-				h.logger.Debug().WithField("id", id.String()).Message("sent a notification")
+				if err := adapters.Events.SaveNotificationForEvent(notification); err != nil {
+					return errors.Wrap(err, "error saving notification")
+				}
 			}
 		}
 
-		// todo maybe not always save?
-		return adapters.Events.Save(cmd.relay, cmd.event)
+		// todo don't save if we don't find this event relevant in the loop above?
+		if err := adapters.Events.Save(cmd.event); err != nil {
+			return errors.Wrap(err, "error saving the event")
+		}
+
+		return nil
 	}); err != nil {
 		return errors.Wrap(err, "transaction error")
 	}
