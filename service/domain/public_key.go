@@ -11,7 +11,7 @@ type PublicKey struct {
 	s string
 }
 
-func NewPublicKey(s string) (PublicKey, error) {
+func NewPublicKeyFromHex(s string) (PublicKey, error) {
 	b, err := hex.DecodeString(s)
 	if err != nil {
 		return PublicKey{}, errors.Wrap(err, "error decoding hex")

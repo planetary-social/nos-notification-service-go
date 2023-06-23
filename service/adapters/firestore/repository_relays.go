@@ -85,7 +85,7 @@ func (r *RelayRepository) GetPublicKeys(ctx context.Context, address domain.Rela
 			return nil, errors.Wrap(err, "error calling iter next")
 		}
 
-		publicKey, err := domain.NewPublicKey(docRef.Ref.ID)
+		publicKey, err := domain.NewPublicKeyFromHex(docRef.Ref.ID)
 		if err != nil {
 			return nil, errors.Wrap(err, "error creating a public key")
 		}

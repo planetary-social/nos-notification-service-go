@@ -16,6 +16,8 @@ import (
 const (
 	reconnectEvery           = 1 * time.Minute
 	manageSubscriptionsEvery = 1 * time.Minute
+
+	howFarIntoThePastToLook = 365 * 24 * time.Hour
 )
 
 type ReceivedEventPublisher interface {
@@ -229,8 +231,6 @@ func (d *RelayDownloader) manageSubs(
 		}
 	}
 }
-
-const howFarIntoThePastToLook = 7 * 24 * time.Hour
 
 func (d *RelayDownloader) updateSubs(
 	conn *websocket.Conn,

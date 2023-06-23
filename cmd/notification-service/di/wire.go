@@ -10,6 +10,7 @@ import (
 	"github.com/google/wire"
 	"github.com/planetary-social/go-notification-service/service/app"
 	"github.com/planetary-social/go-notification-service/service/config"
+	"github.com/planetary-social/go-notification-service/service/domain/notifications"
 )
 
 func BuildService(context.Context, config.Config) (Service, func(), error) {
@@ -20,8 +21,10 @@ func BuildService(context.Context, config.Config) (Service, func(), error) {
 		applicationSet,
 		firestoreAdaptersSet,
 		downloaderSet,
+		generatorSet,
 		pubsubSet,
 		loggingSet,
+		adaptersSet,
 	)
 	return Service{}, nil, nil
 }
@@ -35,3 +38,11 @@ func buildTransactionFirestoreAdapters(client *googlefirestore.Client, tx *googl
 	return app.Adapters{}, nil
 
 }
+
+var downloaderSet = wire.NewSet(
+	app.NewDownloader,
+)
+
+var generatorSet = wire.NewSet(
+	notifications.NewGenerator,
+)
