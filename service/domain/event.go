@@ -101,6 +101,10 @@ func (e Event) Sig() EventSignature {
 	return e.sig
 }
 
+func (e Event) MarshalJSON() ([]byte, error) {
+	return e.libevent.MarshalJSON()
+}
+
 func (e Event) String() string {
 	j, err := e.libevent.MarshalJSON()
 	if err != nil {

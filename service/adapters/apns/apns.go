@@ -20,7 +20,11 @@ func NewAPNS(cfg config.Config, logger logging.Logger) (*APNS, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating an apns client")
 	}
-	return &APNS{client: client, cfg: cfg, logger: logger}, nil
+	return &APNS{
+		client: client,
+		cfg:    cfg,
+		logger: logger.New("apns"),
+	}, nil
 }
 
 func newClient(cfg config.Config) (*apns2.Client, error) {
@@ -46,13 +50,15 @@ func (a *APNS) SendNotification(notification notifications.Notification) error {
 	n.Topic = a.cfg.APNSTopic()
 	n.Payload = notification.Payload()
 
-	_, err := a.client.Push(n)
+	resp, err := a.client.Push(n)
 	if err != nil {
 		return errors.Wrap(err, "error pushing the notification")
 	}
 
 	a.logger.Debug().
 		WithField("uuid", notification.UUID().String()).
+		WithField("response.reason", resp.Reason).
+		WithField("response.statusCode", resp.StatusCode).
 		Message("sent a notification")
 
 	return nil

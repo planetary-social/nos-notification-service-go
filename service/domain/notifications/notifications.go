@@ -25,12 +25,12 @@ func NewGenerator(logger logging.Logger) *Generator {
 }
 
 func (g *Generator) Generate(mention domain.PublicKey, token domain.APNSToken, event domain.Event) ([]Notification, error) {
-	payload, err := g.createPayload(mention, event)
+	payloadJSON, err := g.createPayload(mention, event)
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating the payload")
 	}
 
-	if payload == nil {
+	if payloadJSON == nil {
 		return nil, nil
 	}
 
@@ -39,12 +39,7 @@ func (g *Generator) Generate(mention domain.PublicKey, token domain.APNSToken, e
 		return nil, errors.Wrap(err, "error generating a notification id")
 	}
 
-	j, err := payload.MarshalJSON()
-	if err != nil {
-		return nil, errors.Wrap(err, "error marshaling payload")
-	}
-
-	notification, err := NewNotification(event, id, token, j)
+	notification, err := NewNotification(event, id, token, payloadJSON)
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating a notification")
 	}
@@ -52,24 +47,46 @@ func (g *Generator) Generate(mention domain.PublicKey, token domain.APNSToken, e
 	return []Notification{notification}, nil
 }
 
-func (g *Generator) createPayload(mention domain.PublicKey, event domain.Event) (*payload.Payload, error) {
+func (g *Generator) createPayload(mention domain.PublicKey, event domain.Event) ([]byte, error) {
+	payload, err := g.generatePayload(mention, event)
+	if err != nil {
+		return nil, errors.Wrap(err, "error creating the payload")
+	}
+
+	if payload == nil {
+		return nil, nil
+	}
+
+	eventJSON, err := event.MarshalJSON()
+	if err != nil {
+		return nil, errors.Wrap(err, "error marshaling event")
+	}
+
+	payload = payload.Custom("event", string(eventJSON))
+
+	payloadJSON, err := payload.MarshalJSON()
+	if err != nil {
+		return nil, errors.Wrap(err, "error marshaling payload")
+	}
+
+	return payloadJSON, nil
+}
+
+func (g *Generator) generatePayload(mention domain.PublicKey, event domain.Event) (*payload.Payload, error) {
 	if mentionedThemself(mention, event) {
 		return nil, nil
 	}
 
 	switch event.Kind() {
 	case eventKindNote:
-		// todo "Your message has new replies."/"You were mentioned in a message".
 		g.logger.Debug().Message("note")
-		return nil, nil
+		return payload.NewPayload().Alert("You were tagged in a note.").Category("event.tagged.note"), nil
 	case eventKindReaction:
-		// todo "Your message has new reactions."
 		g.logger.Debug().Message("reaction")
-		return nil, nil
+		return payload.NewPayload().Alert("You were tagged in a reaction.").Category("event.tagged.reaction"), nil
 	case eventKindEncryptedDirectMessage:
-		// todo "You received a private message."
 		g.logger.Debug().Message("encrypted direct message")
-		return nil, nil
+		return payload.NewPayload().Alert("You were tagged in an encrypted direct message.").Category("event.tagged.encryptedDirectMessage"), nil
 	default:
 		return nil, nil
 	}
