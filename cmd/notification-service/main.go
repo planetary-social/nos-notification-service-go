@@ -23,7 +23,14 @@ func main() {
 
 func run() error {
 	ctx := context.Background()
-	cfg, err := config.NewConfig("", "test-project-id", "some.topic", "./cert")
+	cfg, err := config.NewConfig(
+		"",
+		"test-project-id",
+		"some.topic",
+		"./cert",
+		"",
+		config.EnvironmentDevelopment,
+	)
 	if err != nil {
 		return errors.Wrap(err, "error creating a config")
 	}

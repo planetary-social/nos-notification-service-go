@@ -100,6 +100,8 @@ func createService(ctx context.Context, tb testing.TB) (config.Config, di.Servic
 		"test-project-id",
 		"someAPNSTopic",
 		"someAPNSCertPath",
+		"someAPNSCertPassword",
+		config.EnvironmentDevelopment,
 	)
 	require.NoError(tb, err)
 

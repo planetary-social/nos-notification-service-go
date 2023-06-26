@@ -11,30 +11,39 @@ import (
 
 type APNS struct {
 	client *apns2.Client
-	config config.Config
+	cfg    config.Config
 	logger logging.Logger
 }
 
-func NewAPNS(config config.Config, logger logging.Logger) (*APNS, error) {
-	cert, err := certificate.FromP12File(config.APNSCertificatePath(), "") // todo password support?
+func NewAPNS(cfg config.Config, logger logging.Logger) (*APNS, error) {
+	client, err := newClient(cfg)
+	if err != nil {
+		return nil, errors.Wrap(err, "error creating an apns client")
+	}
+	return &APNS{client: client, cfg: cfg, logger: logger}, nil
+}
+
+func newClient(cfg config.Config) (*apns2.Client, error) {
+	cert, err := certificate.FromP12File(cfg.APNSCertificatePath(), cfg.APNSCertificatePassword())
 	if err != nil {
 		return nil, errors.Wrap(err, "error loading certificate")
 	}
 
-	// If you want to test push notifications for builds running directly from XCode (Development), use
-	// client := apns2.NewClient(cert).Development()
-	// For apps published to the app store or installed as an ad-hoc distribution use Production()
-
-	client := apns2.NewClient(cert).Production() // todo dev/prod
-
-	return &APNS{client: client, config: config, logger: logger}, nil
+	switch cfg.Environment() {
+	case config.EnvironmentProduction:
+		return apns2.NewClient(cert).Production(), nil
+	case config.EnvironmentDevelopment:
+		return apns2.NewClient(cert).Development(), nil
+	default:
+		return nil, errors.New("unknown environment")
+	}
 }
 
 func (a *APNS) SendNotification(notification notifications.Notification) error {
 	n := &apns2.Notification{}
 	n.ApnsID = notification.UUID().String()
 	n.DeviceToken = notification.APNSToken().Hex()
-	n.Topic = a.config.APNSTopic()
+	n.Topic = a.cfg.APNSTopic()
 	n.Payload = notification.Payload()
 
 	_, err := a.client.Push(n)
