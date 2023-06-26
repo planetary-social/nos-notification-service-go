@@ -13,7 +13,7 @@ func GetMentionsFromTags(tags []EventTag) ([]PublicKey, error) {
 		if tag.IsProfile() {
 			pubKey, err := tag.Profile()
 			if err != nil {
-				return nil, errors.Wrap(err, "error getting public key from tag")
+				return nil, errors.Wrapf(err, "error getting public key from tag '%s'", tag)
 			}
 			mentions = append(mentions, pubKey)
 		}

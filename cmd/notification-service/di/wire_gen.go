@@ -57,7 +57,7 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 		return Service{}, nil, err
 	}
 	processReceivedEventHandler := app.NewProcessReceivedEventHandler(transactionProvider, generator, apnsAPNS, loggingLogger)
-	receivedEventSubscriber := pubsub2.NewReceivedEventSubscriber(receivedEventPubSub, processReceivedEventHandler)
+	receivedEventSubscriber := pubsub2.NewReceivedEventSubscriber(receivedEventPubSub, processReceivedEventHandler, loggingLogger)
 	service := NewService(application, server, downloader, receivedEventSubscriber)
 	return service, func() {
 	}, nil
@@ -96,7 +96,7 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 		return Service{}, nil, err
 	}
 	processReceivedEventHandler := app.NewProcessReceivedEventHandler(transactionProvider, generator, apnsMock, loggingLogger)
-	receivedEventSubscriber := pubsub2.NewReceivedEventSubscriber(receivedEventPubSub, processReceivedEventHandler)
+	receivedEventSubscriber := pubsub2.NewReceivedEventSubscriber(receivedEventPubSub, processReceivedEventHandler, loggingLogger)
 	service := NewService(application, server, downloader, receivedEventSubscriber)
 	return service, func() {
 	}, nil

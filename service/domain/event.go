@@ -15,6 +15,8 @@ type Event struct {
 	tags      []EventTag
 	content   string
 	sig       EventSignature
+
+	libevent nostr.Event
 }
 
 func NewEvent(libevent nostr.Event) (Event, error) {
@@ -66,6 +68,8 @@ func NewEvent(libevent nostr.Event) (Event, error) {
 		tags:      tags,
 		content:   libevent.Content,
 		sig:       sig,
+
+		libevent: libevent,
 	}, nil
 }
 
@@ -95,4 +99,12 @@ func (e Event) Content() string {
 
 func (e Event) Sig() EventSignature {
 	return e.sig
+}
+
+func (e Event) String() string {
+	j, err := e.libevent.MarshalJSON()
+	if err != nil {
+		panic(err)
+	}
+	return string(j)
 }
