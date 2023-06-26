@@ -22,7 +22,7 @@ func run() error {
 	cfg, err := config.NewConfig(
 		"",
 		"test-project-id",
-		"some.topic",
+		"com.verse.Nos",
 		os.Getenv("APNS_CERT"),
 		"",
 		config.EnvironmentDevelopment,
