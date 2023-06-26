@@ -5,6 +5,7 @@ package integration_tests
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"net"
 	"strings"
 	"testing"
@@ -18,6 +19,11 @@ import (
 	"github.com/planetary-social/go-notification-service/service/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+)
+
+const (
+	durationTimeout = 5 * time.Second
+	durationTick    = 100 * time.Millisecond
 )
 
 func TestRegistration(t *testing.T) {
@@ -34,22 +40,19 @@ func TestRegistration(t *testing.T) {
 		Tags:      nostr.Tags{},
 		Content: fmt.Sprintf(`
 {
-  "publicKeys": [
-    {
-      "publicKey": "%s",
-      "relays": [
-        {
-          "address": "%s"
-        }
-      ]
-    }
+  "publicKey": "%s",
+  "relays": [
+	{
+	  "address": "%s"
+	}
   ],
   "apnsToken": "%s"
 }
 `,
 			publicKey.Hex(),
 			relayAddress.String(),
-			fixtures.SomeString()),
+			fixtures.SomeAPNSToken().Hex(),
+		),
 	}
 
 	err := event.Sign(privateKeyHex)
@@ -70,13 +73,13 @@ func TestRegistration(t *testing.T) {
 		relays, err := service.App().Queries.GetRelays.Handle(ctx)
 		assert.NoError(c, err)
 		assert.Contains(c, relays, relayAddress)
-	}, 10*time.Second, 100*time.Millisecond)
+	}, durationTimeout, durationTick)
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		publicKeys, err := service.App().Queries.GetPublicKeys.Handle(ctx, relayAddress)
 		assert.NoError(c, err)
 		assert.Contains(c, publicKeys, publicKey)
-	}, 10*time.Second, 100*time.Millisecond)
+	}, durationTimeout, durationTick)
 }
 
 func createClient(ctx context.Context, tb testing.TB, config config.Config) *websocket.Conn {
@@ -92,10 +95,15 @@ func createClient(ctx context.Context, tb testing.TB, config config.Config) *web
 }
 
 func createService(ctx context.Context, tb testing.TB) (config.Config, di.Service) {
-	config, err := config.NewConfig("", "test-project-id")
+	config, err := config.NewConfig(
+		fmt.Sprintf(":%d", 8000+rand.Int()%1000),
+		"test-project-id",
+		"someAPNSTopic",
+		"someAPNSCertPath",
+	)
 	require.NoError(tb, err)
 
-	service, cleanup, err := di.BuildService(ctx, config)
+	service, cleanup, err := di.BuildIntegrationService(ctx, config)
 	require.NoError(tb, err)
 	tb.Cleanup(cleanup)
 

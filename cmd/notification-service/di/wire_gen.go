@@ -63,6 +63,45 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	}, nil
 }
 
+func BuildIntegrationService(contextContext context.Context, configConfig config.Config) (Service, func(), error) {
+	client, err := firestore.NewClient(contextContext, configConfig)
+	if err != nil {
+		return Service{}, nil, err
+	}
+	adaptersFactoryFn := newAdaptersFactoryFn()
+	transactionProvider := firestore.NewTransactionProvider(client, adaptersFactoryFn)
+	logger := newLogrus()
+	logrusLoggingSystem := logging.NewLogrusLoggingSystem(logger)
+	loggingLogger := newSystemLogger(logrusLoggingSystem)
+	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider, loggingLogger)
+	commands := app.Commands{
+		SaveRegistration: saveRegistrationHandler,
+	}
+	getRelaysHandler := app.NewGetRelaysHandler(transactionProvider)
+	getPublicKeysHandler := app.NewGetPublicKeysHandler(transactionProvider)
+	queries := app.Queries{
+		GetRelays:     getRelaysHandler,
+		GetPublicKeys: getPublicKeysHandler,
+	}
+	application := app.Application{
+		Commands: commands,
+		Queries:  queries,
+	}
+	server := http.NewServer(configConfig, application, loggingLogger)
+	receivedEventPubSub := pubsub.NewReceivedEventPubSub()
+	downloader := app.NewDownloader(transactionProvider, receivedEventPubSub, loggingLogger)
+	generator := notifications.NewGenerator(loggingLogger)
+	apnsMock, err := apns.NewAPNSMock(configConfig, loggingLogger)
+	if err != nil {
+		return Service{}, nil, err
+	}
+	processReceivedEventHandler := app.NewProcessReceivedEventHandler(transactionProvider, generator, apnsMock, loggingLogger)
+	receivedEventSubscriber := pubsub2.NewReceivedEventSubscriber(receivedEventPubSub, processReceivedEventHandler)
+	service := NewService(application, server, downloader, receivedEventSubscriber)
+	return service, func() {
+	}, nil
+}
+
 func buildTransactionFirestoreAdapters(client *firestore2.Client, tx *firestore2.Transaction) (app.Adapters, error) {
 	relayRepository := firestore.NewRelayRepository(client, tx)
 	publicKeyRepository := firestore.NewPublicKeyRepository(client, tx)

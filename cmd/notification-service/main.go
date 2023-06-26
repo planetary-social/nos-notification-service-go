@@ -34,7 +34,7 @@ func run() error {
 	}
 	defer cleanup()
 
-	addMyRegistration(ctx, service) // todo remove
+	//addMyRegistration(ctx, service) // todo remove
 
 	return service.Run(ctx)
 
@@ -69,15 +69,11 @@ func addMyRegistration(ctx context.Context, service di.Service) {
 		Tags:      nostr.Tags{},
 		Content: fmt.Sprintf(`
 {
-  "publicKeys": [
-    {
-      "publicKey": "%s",
-      "relays": [
-        {
-          "address": "%s"
-        }
-      ]
-    }
+  "publicKey": "%s",
+  "relays": [
+	{
+	  "address": "%s"
+	}
   ],
   "apnsToken": "%s"
 }

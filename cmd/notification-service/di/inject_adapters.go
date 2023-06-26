@@ -39,4 +39,10 @@ var firestoreTxAdaptersSet = wire.NewSet(
 
 var adaptersSet = wire.NewSet(
 	apns.NewAPNS,
+	wire.Bind(new(app.APNS), new(*apns.APNS)),
+)
+
+var integrationAdaptersSet = wire.NewSet(
+	apns.NewAPNSMock,
+	wire.Bind(new(app.APNS), new(*apns.APNSMock)),
 )

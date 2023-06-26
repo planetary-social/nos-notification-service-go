@@ -54,3 +54,7 @@ type Queries struct {
 	GetRelays     *GetRelaysHandler
 	GetPublicKeys *GetPublicKeysHandler
 }
+
+type APNS interface {
+	SendNotification(notification notifications.Notification) error
+}

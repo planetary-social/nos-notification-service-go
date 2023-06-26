@@ -5,7 +5,6 @@ import (
 
 	"github.com/boreq/errors"
 	"github.com/planetary-social/go-notification-service/internal/logging"
-	"github.com/planetary-social/go-notification-service/service/adapters/apns"
 	"github.com/planetary-social/go-notification-service/service/domain"
 	"github.com/planetary-social/go-notification-service/service/domain/notifications"
 )
@@ -22,14 +21,14 @@ func NewProcessReceivedEvent(relay domain.RelayAddress, event domain.Event) Proc
 type ProcessReceivedEventHandler struct {
 	transactionProvider TransactionProvider
 	generator           *notifications.Generator
-	apns                *apns.APNS
+	apns                APNS
 	logger              logging.Logger
 }
 
 func NewProcessReceivedEventHandler(
 	transactionProvider TransactionProvider,
 	generator *notifications.Generator,
-	apns *apns.APNS,
+	apns APNS,
 	logger logging.Logger,
 ) *ProcessReceivedEventHandler {
 	return &ProcessReceivedEventHandler{

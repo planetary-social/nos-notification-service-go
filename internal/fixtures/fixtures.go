@@ -4,10 +4,12 @@ import (
 	"context"
 	cryptorand "crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"math/rand"
 	"testing"
 
 	"github.com/nbd-wtf/go-nostr"
+	"github.com/planetary-social/go-notification-service/internal"
 	"github.com/planetary-social/go-notification-service/service/domain"
 )
 
@@ -36,7 +38,10 @@ func SomeKeyPair() (publicKey domain.PublicKey, secretKeyHex string) {
 }
 
 func SomeRelayAddress() domain.RelayAddress {
-	v, err := domain.NewRelayAddress(SomeString())
+	protocol := internal.RandomElement([]string{"ws", "wss"})
+	address := fmt.Sprintf("%s://%s", protocol, SomeString())
+
+	v, err := domain.NewRelayAddress(address)
 	if err != nil {
 		panic(err)
 	}
@@ -45,6 +50,14 @@ func SomeRelayAddress() domain.RelayAddress {
 
 func SomeString() string {
 	return randSeq(10)
+}
+
+func SomeAPNSToken() domain.APNSToken {
+	v, err := domain.NewAPNSTokenFromHex(SomeHexBytesOfLen(10 + rand.Intn(10)))
+	if err != nil {
+		panic(err)
+	}
+	return v
 }
 
 func SomeHexBytesOfLen(l int) string {

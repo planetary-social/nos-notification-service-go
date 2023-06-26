@@ -29,6 +29,22 @@ func BuildService(context.Context, config.Config) (Service, func(), error) {
 	return Service{}, nil, nil
 }
 
+func BuildIntegrationService(context.Context, config.Config) (Service, func(), error) {
+	wire.Build(
+		NewService,
+
+		portsSet,
+		applicationSet,
+		firestoreAdaptersSet,
+		downloaderSet,
+		generatorSet,
+		pubsubSet,
+		loggingSet,
+		integrationAdaptersSet,
+	)
+	return Service{}, nil, nil
+}
+
 func buildTransactionFirestoreAdapters(client *googlefirestore.Client, tx *googlefirestore.Transaction) (app.Adapters, error) {
 	wire.Build(
 		wire.Struct(new(app.Adapters), "*"),
