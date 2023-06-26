@@ -23,7 +23,7 @@ func run() error {
 		"",
 		"test-project-id",
 		"some.topic",
-		"./cert",
+		os.Getenv("APNS_CERT"),
 		"",
 		config.EnvironmentDevelopment,
 	)
