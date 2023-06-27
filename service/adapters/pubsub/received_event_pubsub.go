@@ -13,7 +13,7 @@ type ReceivedEventPubSub struct {
 
 func NewReceivedEventPubSub() *ReceivedEventPubSub {
 	return &ReceivedEventPubSub{
-		pubsub: NewGoChannelPubSub[app.ReceivedEvent{}](),
+		pubsub: NewGoChannelPubSub[app.ReceivedEvent](),
 	}
 }
 

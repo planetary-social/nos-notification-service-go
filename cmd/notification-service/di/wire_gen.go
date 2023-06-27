@@ -34,9 +34,17 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	}
 	adaptersFactoryFn := newAdaptersFactoryFn()
 	transactionProvider := firestore.NewTransactionProvider(client, adaptersFactoryFn)
+	generator := notifications.NewGenerator(loggingLogger)
+	apnsAPNS, err := apns.NewAPNS(configConfig, loggingLogger)
+	if err != nil {
+		cleanup()
+		return Service{}, nil, err
+	}
+	processReceivedEventHandler := app.NewProcessReceivedEventHandler(transactionProvider, generator, apnsAPNS, loggingLogger)
 	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider, loggingLogger)
 	commands := app.Commands{
-		SaveRegistration: saveRegistrationHandler,
+		ProcessReceivedEvent: processReceivedEventHandler,
+		SaveRegistration:     saveRegistrationHandler,
 	}
 	getRelaysHandler := app.NewGetRelaysHandler(transactionProvider)
 	getPublicKeysHandler := app.NewGetPublicKeysHandler(transactionProvider)
@@ -55,13 +63,6 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	}
 	server := http.NewServer(configConfig, application, loggingLogger)
 	downloader := app.NewDownloader(transactionProvider, receivedEventPubSub, loggingLogger)
-	generator := notifications.NewGenerator(loggingLogger)
-	apnsAPNS, err := apns.NewAPNS(configConfig, loggingLogger)
-	if err != nil {
-		cleanup()
-		return Service{}, nil, err
-	}
-	processReceivedEventHandler := app.NewProcessReceivedEventHandler(transactionProvider, generator, apnsAPNS, loggingLogger)
 	receivedEventSubscriber := pubsub2.NewReceivedEventSubscriber(receivedEventPubSub, processReceivedEventHandler, loggingLogger)
 	service := NewService(application, server, downloader, receivedEventSubscriber)
 	return service, func() {
@@ -79,9 +80,17 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 	}
 	adaptersFactoryFn := newAdaptersFactoryFn()
 	transactionProvider := firestore.NewTransactionProvider(client, adaptersFactoryFn)
+	generator := notifications.NewGenerator(loggingLogger)
+	apnsMock, err := apns.NewAPNSMock(configConfig, loggingLogger)
+	if err != nil {
+		cleanup()
+		return Service{}, nil, err
+	}
+	processReceivedEventHandler := app.NewProcessReceivedEventHandler(transactionProvider, generator, apnsMock, loggingLogger)
 	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider, loggingLogger)
 	commands := app.Commands{
-		SaveRegistration: saveRegistrationHandler,
+		ProcessReceivedEvent: processReceivedEventHandler,
+		SaveRegistration:     saveRegistrationHandler,
 	}
 	getRelaysHandler := app.NewGetRelaysHandler(transactionProvider)
 	getPublicKeysHandler := app.NewGetPublicKeysHandler(transactionProvider)
@@ -100,13 +109,6 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 	}
 	server := http.NewServer(configConfig, application, loggingLogger)
 	downloader := app.NewDownloader(transactionProvider, receivedEventPubSub, loggingLogger)
-	generator := notifications.NewGenerator(loggingLogger)
-	apnsMock, err := apns.NewAPNSMock(configConfig, loggingLogger)
-	if err != nil {
-		cleanup()
-		return Service{}, nil, err
-	}
-	processReceivedEventHandler := app.NewProcessReceivedEventHandler(transactionProvider, generator, apnsMock, loggingLogger)
 	receivedEventSubscriber := pubsub2.NewReceivedEventSubscriber(receivedEventPubSub, processReceivedEventHandler, loggingLogger)
 	service := NewService(application, server, downloader, receivedEventSubscriber)
 	return service, func() {
@@ -118,7 +120,8 @@ func buildTransactionFirestoreAdapters(client *firestore2.Client, tx *firestore2
 	relayRepository := firestore.NewRelayRepository(client, tx)
 	publicKeyRepository := firestore.NewPublicKeyRepository(client, tx)
 	registrationRepository := firestore.NewRegistrationRepository(client, tx, relayRepository, publicKeyRepository)
-	eventRepository := firestore.NewEventRepository(client, tx, relayRepository)
+	tagRepository := firestore.NewTagRepository(client, tx)
+	eventRepository := firestore.NewEventRepository(client, tx, relayRepository, tagRepository)
 	adapters := app.Adapters{
 		Registrations: registrationRepository,
 		Events:        eventRepository,

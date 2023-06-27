@@ -14,6 +14,8 @@ import (
 )
 
 const (
+	recheckRelayListEvery = 1 * time.Minute
+
 	reconnectEvery           = 1 * time.Minute
 	manageSubscriptionsEvery = 1 * time.Minute
 
@@ -79,7 +81,11 @@ func (d *Downloader) Run(ctx context.Context) error {
 			}
 		}
 
-		<-time.After(60 * time.Second)
+		select {
+		case <-time.After(recheckRelayListEvery):
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 }
 
@@ -147,13 +153,20 @@ func (d *RelayDownloader) run(ctx context.Context) {
 }
 
 func (d *RelayDownloader) connectAndDownload(ctx context.Context) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	d.logger.Debug().Message("connecting")
 
 	conn, _, err := websocket.DefaultDialer.DialContext(ctx, d.address.String(), nil)
 	if err != nil {
 		return errors.Wrap(err, "error dialing the relay")
 	}
-	defer conn.Close()
+
+	go func() {
+		<-ctx.Done()
+		conn.Close()
+	}()
 
 	go func() {
 		if err := d.manageSubs(ctx, conn); err != nil {

@@ -44,7 +44,8 @@ type Application struct {
 }
 
 type Commands struct {
-	SaveRegistration *SaveRegistrationHandler
+	ProcessReceivedEvent *ProcessReceivedEventHandler
+	SaveRegistration     *SaveRegistrationHandler
 }
 
 type Queries struct {

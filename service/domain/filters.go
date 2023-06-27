@@ -11,7 +11,7 @@ type Filter struct {
 	ids     []EventId
 	kinds   []EventKind
 	authors []PublicKey
-	tags    []EventTag
+	tags    map[EventTagName][]string
 	since   *time.Time
 	until   *time.Time
 	limit   int
@@ -25,7 +25,7 @@ func NewFilter(f nostr.Filter) (Filter, error) {
 	for _, v := range f.IDs {
 		id, err := NewEventId(v)
 		if err != nil {
-			return Filter{}, errors.Wrap(err, "error creating an event id")
+			return Filter{}, errors.Wrap(err, "error creating an event id, note that prefix filters are not supported")
 		}
 		ids = append(ids, id)
 	}
@@ -43,18 +43,18 @@ func NewFilter(f nostr.Filter) (Filter, error) {
 	for _, v := range f.Authors {
 		author, err := NewPublicKeyFromHex(v)
 		if err != nil {
-			return Filter{}, errors.Wrap(err, "error creating a public key")
+			return Filter{}, errors.Wrap(err, "error creating a public key, note that prefix filters are not supported")
 		}
 		authors = append(authors, author)
 	}
 
-	var tags []EventTag
-	for _, v := range f.Tags {
-		tag, err := NewEventTag(v)
+	tags := make(map[EventTagName][]string)
+	for tagName, tagValues := range f.Tags {
+		name, err := NewEventTagName(tagName)
 		if err != nil {
 			return Filter{}, errors.Wrap(err, "error creating a tag")
 		}
-		tags = append(tags, tag)
+		tags[name] = tagValues
 	}
 
 	var since *time.Time
@@ -73,6 +73,10 @@ func NewFilter(f nostr.Filter) (Filter, error) {
 		return Filter{}, errors.New("limit can't be negative")
 	}
 
+	if f.Search != "" {
+		return Filter{}, errors.New("search is not supported")
+	}
+
 	return Filter{
 		ids:     ids,
 		kinds:   kinds,
@@ -89,6 +93,38 @@ func NewFilter(f nostr.Filter) (Filter, error) {
 
 func (f Filter) Matches(event Event) bool {
 	return f.libfilter.Matches(&event.libevent)
+}
+
+func (f Filter) Ids() []EventId {
+	return f.ids
+}
+
+func (f Filter) Kinds() []EventKind {
+	return f.kinds
+}
+
+func (f Filter) Authors() []PublicKey {
+	return f.authors
+}
+
+func (f Filter) Tags() map[EventTagName][]string {
+	return f.tags
+}
+
+func (f Filter) Since() *time.Time {
+	return f.since
+}
+
+func (f Filter) Until() *time.Time {
+	return f.until
+}
+
+func (f Filter) Limit() int {
+	return f.limit
+}
+
+func (f Filter) Search() string {
+	return f.search
 }
 
 type Filters struct {
@@ -117,4 +153,8 @@ func (f Filters) Match(event Event) bool {
 		}
 	}
 	return false
+}
+
+func (f Filters) Filters() []Filter {
+	return f.filters
 }
