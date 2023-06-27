@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/boreq/errors"
@@ -17,6 +18,15 @@ type Event struct {
 	sig       EventSignature
 
 	libevent nostr.Event
+}
+
+func NewEventFromRaw(raw []byte) (Event, error) {
+	var libevent nostr.Event
+	if err := json.Unmarshal(raw, &libevent); err != nil {
+		return Event{}, errors.Wrap(err, "error unmarshaling")
+
+	}
+	return NewEvent(libevent)
 }
 
 func NewEvent(libevent nostr.Event) (Event, error) {
@@ -105,10 +115,14 @@ func (e Event) MarshalJSON() ([]byte, error) {
 	return e.libevent.MarshalJSON()
 }
 
-func (e Event) String() string {
+func (e Event) Raw() []byte {
 	j, err := e.libevent.MarshalJSON()
 	if err != nil {
 		panic(err)
 	}
-	return string(j)
+	return j
+}
+
+func (e Event) String() string {
+	return string(e.Raw())
 }

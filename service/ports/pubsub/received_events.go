@@ -33,12 +33,12 @@ func NewReceivedEventSubscriber(
 
 func (p *ReceivedEventSubscriber) Run(ctx context.Context) error {
 	for v := range p.pubsub.Subscribe(ctx) {
-		cmd := app.NewProcessReceivedEvent(v.Relay, v.Event)
+		cmd := app.NewProcessReceivedEvent(v.Relay(), v.Event())
 		if err := p.handler.Handle(ctx, cmd); err != nil {
 			p.logger.Error().
 				WithError(err).
-				WithField("relay", v.Relay).
-				WithField("event", v.Event).
+				WithField("relay", v.Relay()).
+				WithField("event", v.Event()).
 				Message("error handling a received event")
 		}
 	}

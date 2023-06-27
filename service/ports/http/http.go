@@ -133,13 +133,14 @@ func (s *Server) handleConnection(ctx context.Context, conn *websocket.Conn) err
 			}
 
 			ctx, cancel := context.WithCancel(ctx)
-
-			go func() {
-
-			}
+			go s.sendEvents(ctx, conn, filters)
 			subscriptions[v.SubscriptionID] = cancel
 		default:
-			fmt.Println("received an unknown message:", message)
+			s.logger.Error().WithField("message", message).Message("received an unknown message")
 		}
 	}
+}
+
+func (s *Server) sendEvents(ctx context.Context, conn *websocket.Conn, filters domain.Filters) {
+
 }

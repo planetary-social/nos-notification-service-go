@@ -59,6 +59,8 @@ func (h *GetEventsHandler) Handle(ctx context.Context, filters domain.Filters) <
 }
 
 func (h *GetEventsHandler) send(ctx context.Context, filters domain.Filters, ch chan<- EventOrEOSEOrError) {
+	defer close(ch)
+
 	receivedEvents := h.receivedEventSubscriber.Subscribe(ctx)
 
 	if err := h.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
@@ -77,10 +79,9 @@ func (h *GetEventsHandler) send(ctx context.Context, filters domain.Filters, ch 
 	}); err != nil {
 		select {
 		case ch <- NewEventOrEOSEOrErrorWithError(errors.Wrap(err, "transaction failed")):
-			return
 		case <-ctx.Done():
-			return
 		}
+		return
 	}
 
 	select {

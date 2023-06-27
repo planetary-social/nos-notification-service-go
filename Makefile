@@ -23,7 +23,7 @@ recreate-emulator:
 	sudo docker-compose -f ./docker-compose-integration.yml up -d
 
 .PHONY: test-integration
-test-integration: recreate-emulator
+test-integration:
 	FIRESTORE_EMULATOR_HOST=localhost:8200 go test -tags=test_integration -v ./...
 
 .PHONY: tidy

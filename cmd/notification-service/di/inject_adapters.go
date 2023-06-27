@@ -40,6 +40,8 @@ var firestoreTxAdaptersSet = wire.NewSet(
 
 	firestore.NewPublicKeyRepository,
 	wire.Bind(new(app.PublicKeyRepository), new(*firestore.PublicKeyRepository)),
+
+	firestore.NewTagRepository,
 )
 
 var adaptersSet = wire.NewSet(

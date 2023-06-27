@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	durationTimeout = 5 * time.Second
+	durationTimeout = 1 * time.Second
 	durationTick    = 100 * time.Millisecond
 )
 
@@ -117,7 +117,6 @@ func createService(ctx context.Context, tb testing.TB) (config.Config, di.Servic
 	tb.Cleanup(cleanup)
 
 	terminatedCh := make(chan error)
-
 	tb.Cleanup(func() {
 		if err := <-terminatedCh; err != nil {
 			if errors.Is(err, net.ErrClosed) {
@@ -131,6 +130,7 @@ func createService(ctx context.Context, tb testing.TB) (config.Config, di.Servic
 	tb.Cleanup(cancelRunCtx)
 	go func() {
 		terminatedCh <- service.Run(runCtx)
+		//service.Run(runCtx)
 	}()
 
 	return config, service
