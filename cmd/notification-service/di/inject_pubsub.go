@@ -9,4 +9,5 @@ import (
 var pubsubSet = wire.NewSet(
 	pubsub.NewReceivedEventPubSub,
 	wire.Bind(new(app.ReceivedEventPublisher), new(*pubsub.ReceivedEventPubSub)),
+	wire.Bind(new(app.ReceivedEventSubscriber), new(*pubsub.ReceivedEventPubSub)),
 )

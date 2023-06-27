@@ -34,6 +34,7 @@ type PublicKeyRepository interface {
 type EventRepository interface {
 	Save(event domain.Event) error
 	Exists(ctx context.Context, id domain.EventId) (bool, error)
+	GetEvents(ctx context.Context, filters domain.Filters) <-chan EventOrError
 	SaveNotificationForEvent(notification notifications.Notification) error
 }
 
@@ -50,8 +51,51 @@ type Queries struct {
 	GetRelays     *GetRelaysHandler
 	GetPublicKeys *GetPublicKeysHandler
 	GetTokens     *GetTokensHandler
+	GetEvents     *GetEventsHandler
 }
 
 type APNS interface {
 	SendNotification(notification notifications.Notification) error
+}
+
+type EventOrError struct {
+	event domain.Event
+	err   error
+}
+
+func NewEventOrErrorWithEvent(event domain.Event) EventOrError {
+	return EventOrError{event: event}
+}
+
+func NewEventOrErrorWithError(err error) EventOrError {
+	return EventOrError{err: err}
+}
+
+func (e *EventOrError) Event() domain.Event {
+	return e.event
+}
+
+func (e *EventOrError) Err() error {
+	return e.err
+}
+
+type ReceivedEvent struct {
+	relay domain.RelayAddress
+	event domain.Event
+}
+
+func NewReceivedEvent(relay domain.RelayAddress, event domain.Event) ReceivedEvent {
+	return ReceivedEvent{relay: relay, event: event}
+}
+
+func (r ReceivedEvent) Relay() domain.RelayAddress {
+	return r.relay
+}
+
+func (r ReceivedEvent) Event() domain.Event {
+	return r.event
+}
+
+type ReceivedEventSubscriber interface {
+	Subscribe(ctx context.Context) <-chan ReceivedEvent
 }

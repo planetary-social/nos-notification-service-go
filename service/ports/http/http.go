@@ -89,6 +89,8 @@ func (s *Server) serveWs(ctx context.Context, rw http.ResponseWriter, r *http.Re
 func (s *Server) handleConnection(ctx context.Context, conn *websocket.Conn) error {
 	s.logger.Debug().Message("accepted websocket connection")
 
+	subscriptions := make(map[string]context.CancelFunc)
+
 	for {
 		_, messageBytes, err := conn.ReadMessage()
 		if err != nil {
@@ -119,6 +121,23 @@ func (s *Server) handleConnection(ctx context.Context, conn *websocket.Conn) err
 			if err := s.app.Commands.SaveRegistration.Handle(ctx, cmd); err != nil {
 				return errors.Wrap(err, "error handling the registration command")
 			}
+		case *nostr.ReqEnvelope:
+			filters, err := domain.NewFilters(v.Filters)
+			if err != nil {
+				return errors.Wrap(err, "error creating filters")
+			}
+
+			if cancel, ok := subscriptions[v.SubscriptionID]; ok {
+				cancel()
+				delete(subscriptions, v.SubscriptionID)
+			}
+
+			ctx, cancel := context.WithCancel(ctx)
+
+			go func() {
+
+			}
+			subscriptions[v.SubscriptionID] = cancel
 		default:
 			fmt.Println("received an unknown message:", message)
 		}
