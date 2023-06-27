@@ -1,15 +1,20 @@
 package di
 
 import (
+	"context"
+
 	googlefirestore "cloud.google.com/go/firestore"
+	"github.com/boreq/errors"
 	"github.com/google/wire"
+	"github.com/planetary-social/go-notification-service/internal/logging"
 	"github.com/planetary-social/go-notification-service/service/adapters/apns"
 	"github.com/planetary-social/go-notification-service/service/adapters/firestore"
 	"github.com/planetary-social/go-notification-service/service/app"
+	"github.com/planetary-social/go-notification-service/service/config"
 )
 
 var firestoreAdaptersSet = wire.NewSet(
-	firestore.NewClient,
+	newFirestoreClient,
 
 	firestore.NewTransactionProvider,
 	wire.Bind(new(app.TransactionProvider), new(*firestore.TransactionProvider)),
@@ -46,3 +51,16 @@ var integrationAdaptersSet = wire.NewSet(
 	apns.NewAPNSMock,
 	wire.Bind(new(app.APNS), new(*apns.APNSMock)),
 )
+
+func newFirestoreClient(ctx context.Context, config config.Config, logger logging.Logger) (*googlefirestore.Client, func(), error) {
+	v, err := firestore.NewClient(ctx, config)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "error creating the firestore client")
+	}
+
+	return v, func() {
+		if err := v.Close(); err != nil {
+			logger.Error().WithError(err).Message("error closing firestore")
+		}
+	}, nil
+}

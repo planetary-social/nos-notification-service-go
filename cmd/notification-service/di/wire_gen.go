@@ -25,15 +25,15 @@ import (
 // Injectors from wire.go:
 
 func BuildService(contextContext context.Context, configConfig config.Config) (Service, func(), error) {
-	client, err := firestore.NewClient(contextContext, configConfig)
+	logger := newLogrus()
+	logrusLoggingSystem := logging.NewLogrusLoggingSystem(logger)
+	loggingLogger := newSystemLogger(logrusLoggingSystem)
+	client, cleanup, err := newFirestoreClient(contextContext, configConfig, loggingLogger)
 	if err != nil {
 		return Service{}, nil, err
 	}
 	adaptersFactoryFn := newAdaptersFactoryFn()
 	transactionProvider := firestore.NewTransactionProvider(client, adaptersFactoryFn)
-	logger := newLogrus()
-	logrusLoggingSystem := logging.NewLogrusLoggingSystem(logger)
-	loggingLogger := newSystemLogger(logrusLoggingSystem)
 	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider, loggingLogger)
 	commands := app.Commands{
 		SaveRegistration: saveRegistrationHandler,
@@ -58,25 +58,27 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	generator := notifications.NewGenerator(loggingLogger)
 	apnsAPNS, err := apns.NewAPNS(configConfig, loggingLogger)
 	if err != nil {
+		cleanup()
 		return Service{}, nil, err
 	}
 	processReceivedEventHandler := app.NewProcessReceivedEventHandler(transactionProvider, generator, apnsAPNS, loggingLogger)
 	receivedEventSubscriber := pubsub2.NewReceivedEventSubscriber(receivedEventPubSub, processReceivedEventHandler, loggingLogger)
 	service := NewService(application, server, downloader, receivedEventSubscriber)
 	return service, func() {
+		cleanup()
 	}, nil
 }
 
 func BuildIntegrationService(contextContext context.Context, configConfig config.Config) (Service, func(), error) {
-	client, err := firestore.NewClient(contextContext, configConfig)
+	logger := newLogrus()
+	logrusLoggingSystem := logging.NewLogrusLoggingSystem(logger)
+	loggingLogger := newSystemLogger(logrusLoggingSystem)
+	client, cleanup, err := newFirestoreClient(contextContext, configConfig, loggingLogger)
 	if err != nil {
 		return Service{}, nil, err
 	}
 	adaptersFactoryFn := newAdaptersFactoryFn()
 	transactionProvider := firestore.NewTransactionProvider(client, adaptersFactoryFn)
-	logger := newLogrus()
-	logrusLoggingSystem := logging.NewLogrusLoggingSystem(logger)
-	loggingLogger := newSystemLogger(logrusLoggingSystem)
 	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider, loggingLogger)
 	commands := app.Commands{
 		SaveRegistration: saveRegistrationHandler,
@@ -101,12 +103,14 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 	generator := notifications.NewGenerator(loggingLogger)
 	apnsMock, err := apns.NewAPNSMock(configConfig, loggingLogger)
 	if err != nil {
+		cleanup()
 		return Service{}, nil, err
 	}
 	processReceivedEventHandler := app.NewProcessReceivedEventHandler(transactionProvider, generator, apnsMock, loggingLogger)
 	receivedEventSubscriber := pubsub2.NewReceivedEventSubscriber(receivedEventPubSub, processReceivedEventHandler, loggingLogger)
 	service := NewService(application, server, downloader, receivedEventSubscriber)
 	return service, func() {
+		cleanup()
 	}, nil
 }
 
