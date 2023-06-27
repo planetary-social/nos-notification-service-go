@@ -1,6 +1,8 @@
 package notifications
 
 import (
+	"encoding/json"
+
 	"github.com/boreq/errors"
 	"github.com/google/uuid"
 	"github.com/planetary-social/go-notification-service/internal/logging"
@@ -8,10 +10,14 @@ import (
 	"github.com/sideshow/apns2/payload"
 )
 
-var (
-	eventKindNote                   = domain.MustNewEventKind(1)
-	eventKindReaction               = domain.MustNewEventKind(7)
-	eventKindEncryptedDirectMessage = domain.MustNewEventKind(4)
+const (
+	locKeyNote                   = "NOTIFICATION_TAGGED_IN_NOTE"
+	locKeyReaction               = "NOTIFICATION_TAGGED_IN_REACTION"
+	locKeyEncryptedDirectMessage = "NOTIFICATION_TAGGED_IN_ENCRYPTED_DIRECT_MESSAGE"
+
+	categoryTaggedNote                   = "event.tagged.note"
+	categoryTaggedReaction               = "event.tagged.reaction"
+	categoryTaggedEncryptedDirectMessage = "event.tagged.encryptedDirectMessage"
 )
 
 type Generator struct {
@@ -62,7 +68,7 @@ func (g *Generator) createPayload(mention domain.PublicKey, event domain.Event) 
 		return nil, errors.Wrap(err, "error marshaling event")
 	}
 
-	payload = payload.Custom("event", string(eventJSON))
+	payload = payload.Custom("event", json.RawMessage(eventJSON))
 
 	payloadJSON, err := payload.MarshalJSON()
 	if err != nil {
@@ -73,26 +79,32 @@ func (g *Generator) createPayload(mention domain.PublicKey, event domain.Event) 
 }
 
 func (g *Generator) generatePayload(mention domain.PublicKey, event domain.Event) (*payload.Payload, error) {
-	if mentionedThemself(mention, event) {
+	if g.mentionedThemself(mention, event) {
 		return nil, nil
 	}
 
 	switch event.Kind() {
-	case eventKindNote:
+	case domain.EventKindNote:
 		g.logger.Debug().Message("note")
-		return payload.NewPayload().Alert("You were tagged in a note.").Category("event.tagged.note"), nil
-	case eventKindReaction:
+		return payload.NewPayload().
+			AlertLocKey(locKeyNote).
+			Category(categoryTaggedNote), nil
+	case domain.EventKindReaction:
 		g.logger.Debug().Message("reaction")
-		return payload.NewPayload().Alert("You were tagged in a reaction.").Category("event.tagged.reaction"), nil
-	case eventKindEncryptedDirectMessage:
+		return payload.NewPayload().
+			AlertLocKey(locKeyReaction).
+			Category(categoryTaggedReaction), nil
+	case domain.EventKindEncryptedDirectMessage:
 		g.logger.Debug().Message("encrypted direct message")
-		return payload.NewPayload().Alert("You were tagged in an encrypted direct message.").Category("event.tagged.encryptedDirectMessage"), nil
+		return payload.NewPayload().
+			AlertLocKey(locKeyEncryptedDirectMessage).
+			Category(categoryTaggedEncryptedDirectMessage), nil
 	default:
 		return nil, nil
 	}
 }
 
-func mentionedThemself(mention domain.PublicKey, event domain.Event) bool {
+func (g *Generator) mentionedThemself(mention domain.PublicKey, event domain.Event) bool {
 	return mention == event.PubKey()
 }
 
@@ -119,6 +131,19 @@ func NewNotification(
 		token:   token,
 		payload: payload,
 	}, nil
+}
+
+func MustNewNotification(
+	event domain.Event,
+	uuid NotificationUUID,
+	token domain.APNSToken,
+	payload []byte,
+) Notification {
+	v, err := NewNotification(event, uuid, token, payload)
+	if err != nil {
+		panic(err)
+	}
+	return v
 }
 
 func (n Notification) Event() domain.Event {
