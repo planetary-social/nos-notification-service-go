@@ -33,6 +33,7 @@ func TestRegistration(t *testing.T) {
 
 	publicKey, privateKeyHex := fixtures.SomeKeyPair()
 	relayAddress := fixtures.SomeRelayAddress()
+	token := fixtures.SomeAPNSToken()
 
 	event := nostr.Event{
 		CreatedAt: nostr.Now(),
@@ -51,7 +52,7 @@ func TestRegistration(t *testing.T) {
 `,
 			publicKey.Hex(),
 			relayAddress.String(),
-			fixtures.SomeAPNSToken().Hex(),
+			token.Hex(),
 		),
 	}
 
@@ -79,6 +80,12 @@ func TestRegistration(t *testing.T) {
 		publicKeys, err := service.App().Queries.GetPublicKeys.Handle(ctx, relayAddress)
 		assert.NoError(c, err)
 		assert.Contains(c, publicKeys, publicKey)
+	}, durationTimeout, durationTick)
+
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		tokens, err := service.App().Queries.GetTokens.Handle(ctx, publicKey)
+		assert.NoError(c, err)
+		assert.Contains(c, tokens, token)
 	}, durationTimeout, durationTick)
 }
 

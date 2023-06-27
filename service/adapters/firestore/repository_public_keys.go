@@ -5,14 +5,13 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"github.com/boreq/errors"
-	"github.com/planetary-social/go-notification-service/service/app"
 	"github.com/planetary-social/go-notification-service/service/domain"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	"google.golang.org/api/iterator"
 )
 
 const (
-	collectionPublicKeys = "publicKeys"
+	collectionPublicKeys           = "publicKeys"
+	collectionPublicKeysAPNSTokens = "apnsTokens"
 )
 
 type PublicKeyRepository struct {
@@ -28,35 +27,50 @@ func (r *PublicKeyRepository) Save(registration domain.Registration) error {
 	pubKeyDocPath := r.client.Collection(collectionPublicKeys).Doc(registration.PublicKey().Hex())
 	pubKeyDocData := map[string]any{
 		"publicKey": registration.PublicKey().Hex(),
-		"token":     registration.APNSToken().Hex(),
 	}
 	if err := r.tx.Set(pubKeyDocPath, pubKeyDocData, firestore.MergeAll); err != nil {
+		return errors.Wrap(err, "error creating the public key doc")
+	}
+
+	tokenDocPath := r.client.Collection(collectionPublicKeys).Doc(registration.PublicKey().Hex()).Collection(collectionPublicKeysAPNSTokens).Doc(registration.APNSToken().Hex())
+	tokenDocData := map[string]any{
+		"token": registration.APNSToken().Hex(),
+	}
+	if err := r.tx.Set(tokenDocPath, tokenDocData, firestore.MergeAll); err != nil {
 		return errors.Wrap(err, "error creating the public key doc")
 	}
 
 	return nil
 }
 
-func (r *PublicKeyRepository) GetAPNSToken(ctx context.Context, key domain.PublicKey) (domain.APNSToken, error) {
+func (r *PublicKeyRepository) GetAPNSTokens(ctx context.Context, key domain.PublicKey) ([]domain.APNSToken, error) {
 	// todo do it in transaction? emulator doesn't support it
-	doc, err := r.client.Collection(collectionPublicKeys).Doc(key.Hex()).Get(ctx)
-	if err != nil {
-		if status.Code(err) == codes.NotFound {
-			return domain.APNSToken{}, app.APNSTokenNotFoundErr
+	docs := r.client.Collection(collectionPublicKeys).Doc(key.Hex()).Collection(collectionPublicKeysAPNSTokens).Documents(ctx)
+
+	var result []domain.APNSToken
+
+	for {
+		doc, err := docs.Next()
+		if err != nil {
+			if err == iterator.Done {
+				break
+			}
+			return nil, errors.Wrap(err, "error getting a document")
 		}
-		return domain.APNSToken{}, errors.Wrap(err, "error getting the public key document")
+
+		data := make(map[string]any)
+
+		if err := doc.DataTo(&data); err != nil {
+			return nil, errors.Wrap(err, "error reading document data")
+		}
+
+		apnsToken, err := domain.NewAPNSTokenFromHex(data["token"].(string))
+		if err != nil {
+			return nil, errors.Wrap(err, "error creating a token from hex")
+		}
+
+		result = append(result, apnsToken)
 	}
 
-	data := make(map[string]any)
-
-	if err := doc.DataTo(&data); err != nil {
-		return domain.APNSToken{}, errors.Wrap(err, "error reading document data")
-	}
-
-	apnsToken, err := domain.NewAPNSTokenFromHex(data["token"].(string))
-	if err != nil {
-		return domain.APNSToken{}, errors.Wrap(err, "error creating a token from hex")
-	}
-
-	return apnsToken, nil
+	return result, nil
 }

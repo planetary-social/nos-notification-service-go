@@ -27,4 +27,5 @@ var queriesSet = wire.NewSet(
 
 	app.NewGetRelaysHandler,
 	app.NewGetPublicKeysHandler,
+	app.NewGetTokensHandler,
 )

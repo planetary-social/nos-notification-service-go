@@ -40,9 +40,11 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	}
 	getRelaysHandler := app.NewGetRelaysHandler(transactionProvider)
 	getPublicKeysHandler := app.NewGetPublicKeysHandler(transactionProvider)
+	getTokensHandler := app.NewGetTokensHandler(transactionProvider)
 	queries := app.Queries{
 		GetRelays:     getRelaysHandler,
 		GetPublicKeys: getPublicKeysHandler,
+		GetTokens:     getTokensHandler,
 	}
 	application := app.Application{
 		Commands: commands,
@@ -79,9 +81,11 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 	}
 	getRelaysHandler := app.NewGetRelaysHandler(transactionProvider)
 	getPublicKeysHandler := app.NewGetPublicKeysHandler(transactionProvider)
+	getTokensHandler := app.NewGetTokensHandler(transactionProvider)
 	queries := app.Queries{
 		GetRelays:     getRelaysHandler,
 		GetPublicKeys: getPublicKeysHandler,
+		GetTokens:     getTokensHandler,
 	}
 	application := app.Application{
 		Commands: commands,

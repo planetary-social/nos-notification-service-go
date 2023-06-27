@@ -62,27 +62,26 @@ func (h *ProcessReceivedEventHandler) Handle(ctx context.Context, cmd ProcessRec
 		}
 
 		for _, mention := range mentions {
-			token, err := adapters.PublicKeys.GetAPNSToken(ctx, mention)
+			tokens, err := adapters.PublicKeys.GetAPNSTokens(ctx, mention)
 			if err != nil {
-				if errors.Is(err, APNSTokenNotFoundErr) {
-					continue
-				}
 				return errors.Wrap(err, "error getting the token")
 			}
 
-			notifications, err := h.generator.Generate(mention, token, cmd.event)
-			if err != nil {
-				return errors.Wrap(err, "error generating notifications")
-			}
-
-			for _, notification := range notifications {
-				// todo send via pubsub instead
-				if err := h.apns.SendNotification(notification); err != nil {
-					return errors.Wrap(err, "error sending a notification")
+			for _, token := range tokens {
+				notifications, err := h.generator.Generate(mention, token, cmd.event)
+				if err != nil {
+					return errors.Wrap(err, "error generating notifications")
 				}
 
-				if err := adapters.Events.SaveNotificationForEvent(notification); err != nil {
-					return errors.Wrap(err, "error saving notification")
+				for _, notification := range notifications {
+					// todo send via pubsub instead
+					if err := h.apns.SendNotification(notification); err != nil {
+						return errors.Wrap(err, "error sending a notification")
+					}
+
+					if err := adapters.Events.SaveNotificationForEvent(notification); err != nil {
+						return errors.Wrap(err, "error saving notification")
+					}
 				}
 			}
 		}

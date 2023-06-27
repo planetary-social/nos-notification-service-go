@@ -28,55 +28,13 @@ func NewRegistrationRepository(
 	}
 }
 
-const (
-	collectionAPNSTokens                 = "apnsTokens"
-	collectionAPNSTokensPublicKeys       = "publicKeys"
-	collectionAPNSTokensPublicKeysRelays = "relays"
-)
-
 func (r *RegistrationRepository) Save(registration domain.Registration) error {
-	if err := r.saveUnderTokens(registration); err != nil {
-		return errors.Wrap(err, "error saving under tokens")
-	}
-
 	if err := r.relayRepository.Save(registration); err != nil {
 		return errors.Wrap(err, "error saving under relays")
 	}
 
 	if err := r.publicKeyRepository.Save(registration); err != nil {
-		return errors.Wrap(err, "error saving under relays")
-	}
-
-	return nil
-}
-
-func (r *RegistrationRepository) saveUnderTokens(registration domain.Registration) error {
-	tokenDocPath := r.client.Collection(collectionAPNSTokens).Doc(registration.APNSToken().Hex())
-	tokenDocData := map[string]any{
-		"token": registration.APNSToken().Hex(),
-	}
-	if err := r.tx.Set(tokenDocPath, tokenDocData, firestore.MergeAll); err != nil {
-		return errors.Wrap(err, "error updating the token doc")
-	}
-
-	pubKeyHex := registration.PublicKey().Hex()
-
-	publicKeyDocPath := tokenDocPath.Collection(collectionAPNSTokensPublicKeys).Doc(pubKeyHex)
-	publicKeyDocData := map[string]any{
-		"publicKey": pubKeyHex,
-	}
-	if err := r.tx.Set(publicKeyDocPath, publicKeyDocData, firestore.MergeAll); err != nil {
-		return errors.Wrap(err, "error creating the key doc")
-	}
-
-	for _, relayAddress := range registration.Relays() {
-		relayDocPath := publicKeyDocPath.Collection(collectionAPNSTokensPublicKeysRelays).Doc(relayAddressAsKey(relayAddress))
-		relayDocData := map[string]any{
-			"address": relayAddress.String(),
-		}
-		if err := r.tx.Set(relayDocPath, relayDocData, firestore.MergeAll); err != nil {
-			return errors.Wrap(err, "error creating the key doc")
-		}
+		return errors.Wrap(err, "error saving under public keys")
 	}
 
 	return nil
