@@ -2,6 +2,12 @@ package domain
 
 import "github.com/boreq/errors"
 
+var (
+	EventKindNote                   = MustNewEventKind(1)
+	EventKindReaction               = MustNewEventKind(7)
+	EventKindEncryptedDirectMessage = MustNewEventKind(4)
+)
+
 type EventKind struct {
 	k int
 }

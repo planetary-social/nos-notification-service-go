@@ -8,12 +8,6 @@ import (
 	"github.com/sideshow/apns2/payload"
 )
 
-var (
-	eventKindNote                   = domain.MustNewEventKind(1)
-	eventKindReaction               = domain.MustNewEventKind(7)
-	eventKindEncryptedDirectMessage = domain.MustNewEventKind(4)
-)
-
 type Generator struct {
 	logger logging.Logger
 }
@@ -48,23 +42,13 @@ func (g *Generator) Generate(mention domain.PublicKey, token domain.APNSToken, e
 }
 
 func (g *Generator) createPayload(mention domain.PublicKey, event domain.Event) ([]byte, error) {
-	payload, err := g.generatePayload(mention, event)
-	if err != nil {
-		return nil, errors.Wrap(err, "error creating the payload")
-	}
-
-	if payload == nil {
+	if g.mentionedThemself(mention, event) {
 		return nil, nil
 	}
 
-	eventJSON, err := event.MarshalJSON()
-	if err != nil {
-		return nil, errors.Wrap(err, "error marshaling event")
-	}
+	notificationPayload := payload.NewPayload().ContentAvailable()
 
-	payload = payload.Custom("event", string(eventJSON))
-
-	payloadJSON, err := payload.MarshalJSON()
+	payloadJSON, err := notificationPayload.MarshalJSON()
 	if err != nil {
 		return nil, errors.Wrap(err, "error marshaling payload")
 	}
@@ -72,27 +56,7 @@ func (g *Generator) createPayload(mention domain.PublicKey, event domain.Event) 
 	return payloadJSON, nil
 }
 
-func (g *Generator) generatePayload(mention domain.PublicKey, event domain.Event) (*payload.Payload, error) {
-	if mentionedThemself(mention, event) {
-		return nil, nil
-	}
-
-	switch event.Kind() {
-	case eventKindNote:
-		g.logger.Debug().Message("note")
-		return payload.NewPayload().Alert("You were tagged in a note.").Category("event.tagged.note"), nil
-	case eventKindReaction:
-		g.logger.Debug().Message("reaction")
-		return payload.NewPayload().Alert("You were tagged in a reaction.").Category("event.tagged.reaction"), nil
-	case eventKindEncryptedDirectMessage:
-		g.logger.Debug().Message("encrypted direct message")
-		return payload.NewPayload().Alert("You were tagged in an encrypted direct message.").Category("event.tagged.encryptedDirectMessage"), nil
-	default:
-		return nil, nil
-	}
-}
-
-func mentionedThemself(mention domain.PublicKey, event domain.Event) bool {
+func (g *Generator) mentionedThemself(mention domain.PublicKey, event domain.Event) bool {
 	return mention == event.PubKey()
 }
 
@@ -119,6 +83,19 @@ func NewNotification(
 		token:   token,
 		payload: payload,
 	}, nil
+}
+
+func MustNewNotification(
+	event domain.Event,
+	uuid NotificationUUID,
+	token domain.APNSToken,
+	payload []byte,
+) Notification {
+	v, err := NewNotification(event, uuid, token, payload)
+	if err != nil {
+		panic(err)
+	}
+	return v
 }
 
 func (n Notification) Event() domain.Event {
