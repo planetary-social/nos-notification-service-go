@@ -1,7 +1,6 @@
 package notifications_test
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -18,33 +17,21 @@ func TestGenerator(t *testing.T) {
 		Name string
 
 		EventKind domain.EventKind
-
-		ExpectedLocKey   string
-		ExpectedCategory string
 	}{
 		{
 			Name: "note",
 
 			EventKind: domain.EventKindNote,
-
-			ExpectedLocKey:   "NOTIFICATION_TAGGED_IN_NOTE",
-			ExpectedCategory: "event.tagged.note",
 		},
 		{
 			Name: "reaction",
 
 			EventKind: domain.EventKindReaction,
-
-			ExpectedLocKey:   "NOTIFICATION_TAGGED_IN_REACTION",
-			ExpectedCategory: "event.tagged.reaction",
 		},
 		{
 			Name: "edm",
 
 			EventKind: domain.EventKindEncryptedDirectMessage,
-
-			ExpectedLocKey:   "NOTIFICATION_TAGGED_IN_ENCRYPTED_DIRECT_MESSAGE",
-			ExpectedCategory: "event.tagged.encryptedDirectMessage",
 		},
 	}
 
@@ -81,17 +68,7 @@ func TestGenerator(t *testing.T) {
 
 			notification := result[0]
 			require.Equal(t,
-				fmt.Sprintf(
-					`{"aps":{"alert":{"loc-key":"%s"},"category":"%s"},"event":{"id":"%s","pubkey":"%s","created_at":%d,"kind":%d,"tags":[["p","%s"]],"content":"some content","sig":"%s"}}`,
-					testCase.ExpectedLocKey,
-					testCase.ExpectedCategory,
-					event.Id().Hex(),
-					pk2.Hex(),
-					event.CreatedAt().Unix(),
-					testCase.EventKind.Int(),
-					pk1.Hex(),
-					event.Sig().Hex(),
-				),
+				`{"aps":{"content-available":1}}`,
 				string(notification.Payload()),
 			)
 			require.Equal(t, token, notification.APNSToken())
