@@ -5,6 +5,7 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"github.com/boreq/errors"
+	"github.com/planetary-social/go-notification-service/service/app"
 	"github.com/planetary-social/go-notification-service/service/domain"
 	"github.com/planetary-social/go-notification-service/service/domain/notifications"
 	"google.golang.org/grpc/codes"
@@ -90,4 +91,17 @@ func (e *EventRepository) saveUnderEvents(event domain.Event) error {
 	}
 
 	return nil
+}
+
+func (e *EventRepository) GetEvents(ctx context.Context, filters domain.Filters) <-chan app.EventOrError {
+	ch := make(chan app.EventOrError)
+	go e.getEvents(ctx, filters, ch)
+	return ch
+}
+
+func (e *EventRepository) getEvents(ctx context.Context, filters domain.Filters, ch chan<- app.EventOrError) {
+	select {
+	case ch <- app.NewEventOrErrorWithError(errors.New("not implemented")):
+	case <-ctx.Done():
+	}
 }

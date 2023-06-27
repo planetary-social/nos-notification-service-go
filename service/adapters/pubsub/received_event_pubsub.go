@@ -3,33 +3,26 @@ package pubsub
 import (
 	"context"
 
+	"github.com/planetary-social/go-notification-service/service/app"
 	"github.com/planetary-social/go-notification-service/service/domain"
 )
 
-type ReceivedEvent struct {
-	Relay domain.RelayAddress
-	Event domain.Event
-}
-
 type ReceivedEventPubSub struct {
-	pubsub *GoChannelPubSub[ReceivedEvent]
+	pubsub *GoChannelPubSub[app.ReceivedEvent]
 }
 
 func NewReceivedEventPubSub() *ReceivedEventPubSub {
 	return &ReceivedEventPubSub{
-		pubsub: NewGoChannelPubSub[ReceivedEvent](),
+		pubsub: NewGoChannelPubSub[app.ReceivedEvent{}](),
 	}
 }
 
 func (m *ReceivedEventPubSub) Publish(relay domain.RelayAddress, event domain.Event) {
 	m.pubsub.Publish(
-		ReceivedEvent{
-			Relay: relay,
-			Event: event,
-		},
+		app.NewReceivedEvent(relay, event),
 	)
 }
 
-func (m *ReceivedEventPubSub) SubscribeToRequests(ctx context.Context) <-chan ReceivedEvent {
+func (m *ReceivedEventPubSub) Subscribe(ctx context.Context) <-chan app.ReceivedEvent {
 	return m.pubsub.Subscribe(ctx)
 }

@@ -41,17 +41,19 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	getRelaysHandler := app.NewGetRelaysHandler(transactionProvider)
 	getPublicKeysHandler := app.NewGetPublicKeysHandler(transactionProvider)
 	getTokensHandler := app.NewGetTokensHandler(transactionProvider)
+	receivedEventPubSub := pubsub.NewReceivedEventPubSub()
+	getEventsHandler := app.NewGetEventsHandler(transactionProvider, receivedEventPubSub)
 	queries := app.Queries{
 		GetRelays:     getRelaysHandler,
 		GetPublicKeys: getPublicKeysHandler,
 		GetTokens:     getTokensHandler,
+		GetEvents:     getEventsHandler,
 	}
 	application := app.Application{
 		Commands: commands,
 		Queries:  queries,
 	}
 	server := http.NewServer(configConfig, application, loggingLogger)
-	receivedEventPubSub := pubsub.NewReceivedEventPubSub()
 	downloader := app.NewDownloader(transactionProvider, receivedEventPubSub, loggingLogger)
 	generator := notifications.NewGenerator(loggingLogger)
 	apnsAPNS, err := apns.NewAPNS(configConfig, loggingLogger)
@@ -82,17 +84,19 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 	getRelaysHandler := app.NewGetRelaysHandler(transactionProvider)
 	getPublicKeysHandler := app.NewGetPublicKeysHandler(transactionProvider)
 	getTokensHandler := app.NewGetTokensHandler(transactionProvider)
+	receivedEventPubSub := pubsub.NewReceivedEventPubSub()
+	getEventsHandler := app.NewGetEventsHandler(transactionProvider, receivedEventPubSub)
 	queries := app.Queries{
 		GetRelays:     getRelaysHandler,
 		GetPublicKeys: getPublicKeysHandler,
 		GetTokens:     getTokensHandler,
+		GetEvents:     getEventsHandler,
 	}
 	application := app.Application{
 		Commands: commands,
 		Queries:  queries,
 	}
 	server := http.NewServer(configConfig, application, loggingLogger)
-	receivedEventPubSub := pubsub.NewReceivedEventPubSub()
 	downloader := app.NewDownloader(transactionProvider, receivedEventPubSub, loggingLogger)
 	generator := notifications.NewGenerator(loggingLogger)
 	apnsMock, err := apns.NewAPNSMock(configConfig, loggingLogger)
