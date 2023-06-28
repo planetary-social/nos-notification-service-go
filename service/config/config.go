@@ -17,7 +17,9 @@ var (
 
 type Config struct {
 	nostrListenAddress string
-	firestoreProjectID string
+
+	firestoreProjectID       string
+	firestoreCredentialsJSON []byte
 
 	apnsTopic               string
 	apnsCertificatePath     string
@@ -29,18 +31,20 @@ type Config struct {
 func NewConfig(
 	nostrListenAddress string,
 	firestoreProjectID string,
+	firestoreCredentialsJSON []byte,
 	apnsTopic string,
 	apnsCertificatePath string,
 	apnsCertificatePassword string,
 	environment Environment,
 ) (Config, error) {
 	c := Config{
-		nostrListenAddress:      nostrListenAddress,
-		firestoreProjectID:      firestoreProjectID,
-		apnsTopic:               apnsTopic,
-		apnsCertificatePath:     apnsCertificatePath,
-		apnsCertificatePassword: apnsCertificatePassword,
-		environment:             environment,
+		nostrListenAddress:       nostrListenAddress,
+		firestoreProjectID:       firestoreProjectID,
+		firestoreCredentialsJSON: firestoreCredentialsJSON,
+		apnsTopic:                apnsTopic,
+		apnsCertificatePath:      apnsCertificatePath,
+		apnsCertificatePassword:  apnsCertificatePassword,
+		environment:              environment,
 	}
 
 	c.setDefaults()
@@ -57,6 +61,10 @@ func (c *Config) NostrListenAddress() string {
 
 func (c *Config) FirestoreProjectID() string {
 	return c.firestoreProjectID
+}
+
+func (c *Config) FirestoreCredentialsJSON() []byte {
+	return c.firestoreCredentialsJSON
 }
 
 func (c *Config) APNSTopic() string {

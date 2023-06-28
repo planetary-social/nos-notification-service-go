@@ -3,11 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
-	configadapters "github.com/planetary-social/go-notification-service/service/adapters/config"
 	"os"
 
 	"github.com/boreq/errors"
 	"github.com/planetary-social/go-notification-service/cmd/notification-service/di"
+	configadapters "github.com/planetary-social/go-notification-service/service/adapters/config"
 )
 
 func main() {

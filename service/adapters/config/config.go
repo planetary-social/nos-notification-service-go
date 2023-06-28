@@ -2,21 +2,24 @@ package config
 
 import (
 	"fmt"
-	"github.com/boreq/errors"
-	"github.com/planetary-social/go-notification-service/service/config"
+	"io"
 	"os"
 	"strings"
+
+	"github.com/boreq/errors"
+	"github.com/planetary-social/go-notification-service/service/config"
 )
 
 const (
 	envPrefix = "NOTIFICATIONS"
 
-	envNostrListenAddress      = "NOSTR_LISTEN_ADDRESS"
-	envFirestoreProjectID      = "FIRESTORE_PROJECT_ID"
-	envAPNSTopic               = "APNS_TOPIC"
-	envAPNSCertificatePath     = "APNS_CERTIFICATE_PATH"
-	envAPNSCertificatePassword = "APNS_CERTIFICATE_PASSWORD"
-	envEnvironment             = "ENVIRONMENT"
+	envNostrListenAddress           = "NOSTR_LISTEN_ADDRESS"
+	envFirestoreProjectID           = "FIRESTORE_PROJECT_ID"
+	envFirestoreCredentialsJSONPath = "FIRESTORE_CREDENTIALS_JSON_PATH"
+	envAPNSTopic                    = "APNS_TOPIC"
+	envAPNSCertificatePath          = "APNS_CERTIFICATE_PATH"
+	envAPNSCertificatePassword      = "APNS_CERTIFICATE_PASSWORD"
+	envEnvironment                  = "ENVIRONMENT"
 )
 
 type EnvironmentConfigLoader struct {
@@ -32,9 +35,25 @@ func (c *EnvironmentConfigLoader) Load() (config.Config, error) {
 		return config.Config{}, errors.Wrap(err, "error loading the environment setting")
 	}
 
+	var firestoreCredentialsJSON []byte
+	if p := c.getenv(envFirestoreCredentialsJSONPath); p != "" {
+		f, err := os.Open("/home/filip/Downloads/nos-notification-service-dev-firebase-adminsdk-k8ate-214cdeb4d8.json")
+		if err != nil {
+			return config.Config{}, errors.Wrap(err, "error opening the credentials file")
+		}
+
+		b, err := io.ReadAll(f)
+		if err != nil {
+			return config.Config{}, errors.Wrap(err, "error reading the credentials file")
+		}
+
+		firestoreCredentialsJSON = b
+	}
+
 	return config.NewConfig(
 		c.getenv(envNostrListenAddress),
 		c.getenv(envFirestoreProjectID),
+		firestoreCredentialsJSON,
 		c.getenv(envAPNSTopic),
 		c.getenv(envAPNSCertificatePath),
 		c.getenv(envAPNSCertificatePassword),

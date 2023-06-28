@@ -1,5 +1,25 @@
 # Nos Notification Service
 
+## How to do local development
+
+1. Get an APNs certificate.
+   1. Obtain a certificate from Apple (see ["Obtain a provider certificate from Apple"][get-apns-cert]).
+   2. Export the certificate from your keychain in the PKCS#12 format.
+2. Start the docker daemon.
+3. Run `make recreate-emulator` to start the Firestore emulator using Docker compose.
+4. Run the following command changing `NOTIFICATIONS_APNS_CERTIFICATE_PATH` and `NOTIFICATIONS_APNS_CERTIFICATE_PASSWORD`:
+
+```
+NOTIFICATIONS_APNS_CERTIFICATE_PATH=/path/to/your/apns/cert.p12 \
+NOTIFICATIONS_APNS_CERTIFICATE_PASSWORD="your cert password if you set one" \
+FIRESTORE_EMULATOR_HOST=localhost:8200 \
+NOTIFICATIONS_FIRESTORE_PROJECT_ID=test-project-id \
+NOTIFICATIONS_APNS_TOPIC=com.verse.Nos \
+NOTIFICATIONS_ENVIRONMENT=DEVELOPMENT \
+go run ./cmd/notification-service
+```
+
+
 ## Launching
 
 The program is located under this path and takes no arguments:
@@ -25,6 +45,12 @@ Optional, defaults to `:8008` if empty.
 Your Firestore project id.
 
 Required.
+
+### `NOTIFICATIONS_FIRESTORE_CREDENTIALS_JSON_PATH`
+
+Path to your Firestore credentials JSON file.
+
+Required if you are not using the emulator (`FIRESTORE_EMULATOR_HOST` is not set).
 
 ### `NOTIFICATIONS_APNS_TOPIC`
 
@@ -58,3 +84,6 @@ Optional, can be set to `PRODUCTION` or `DEVELOPMENT`. Defaults to `PRODUCTION`.
 
 Optional, this is used by the Firestore libraries and can be useful for testing
 but you shouldn't ever have to set this in production.
+
+
+[get-apns-cert]: https://developer.apple.com/documentation/usernotifications/setting_up_a_remote_notification_server/establishing_a_certificate-based_connection_to_apns#2947597
