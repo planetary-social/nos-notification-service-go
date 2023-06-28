@@ -3,30 +3,24 @@ package main
 import (
 	"context"
 	"fmt"
+	configadapters "github.com/planetary-social/go-notification-service/service/adapters/config"
 	"os"
 
 	"github.com/boreq/errors"
 	"github.com/planetary-social/go-notification-service/cmd/notification-service/di"
-	"github.com/planetary-social/go-notification-service/service/config"
 )
 
 func main() {
 	if err := run(); err != nil {
-		fmt.Printf("error: %s", err)
+		fmt.Printf("error: %s\n", err)
 		os.Exit(1)
 	}
 }
 
 func run() error {
 	ctx := context.Background()
-	cfg, err := config.NewConfig(
-		"",
-		"test-project-id",
-		"com.verse.Nos",
-		os.Getenv("APNS_CERT"),
-		"",
-		config.EnvironmentDevelopment,
-	)
+
+	cfg, err := configadapters.NewEnvironmentConfigLoader().Load()
 	if err != nil {
 		return errors.Wrap(err, "error creating a config")
 	}
@@ -38,5 +32,4 @@ func run() error {
 	defer cleanup()
 
 	return service.Run(ctx)
-
 }

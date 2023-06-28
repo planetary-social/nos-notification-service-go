@@ -26,32 +26,6 @@ type Config struct {
 	environment Environment
 }
 
-// NewConfig creates a new config with the following options:
-//
-// - nostrListenAddress:
-//
-//	Listen address for the websocket connections in the format accepted by the
-//	standard library.
-//
-//	Optional, defaults to ":8008" if empty.
-//
-// - firestoreProjectID
-//
-//	Your firestore project id.
-//
-//	Required.
-//
-// - apnsTopic
-//
-//	Topic on which APNs notifications will be sent.
-//
-//	Required.
-//
-// - apnsCertificatePath
-//
-//	Path to your APNs certificate.
-//
-//	Required.
 func NewConfig(
 	nostrListenAddress string,
 	firestoreProjectID string,
