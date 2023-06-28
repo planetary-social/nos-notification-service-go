@@ -20,13 +20,14 @@ go run ./cmd/notification-service
 ```
 
 
-## Launching
+## Building and running
 
-The program is located under this path and takes no arguments:
+Buid the program like so:
 
-    $ go run ./cmd/notification-service
+    $ go build -o notification-service ./cmd/notification-service
+    $ ./notification-service
 
-There is a Dockerfile available.
+The program takes no arguments. There is a Dockerfile available.
 
 ## Configuration
 
