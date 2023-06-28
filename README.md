@@ -19,6 +19,24 @@ NOTIFICATIONS_ENVIRONMENT=DEVELOPMENT \
 go run ./cmd/notification-service
 ```
 
+### Tips and tricks
+
+Normally the program doesn't deliver the same notification multiple times. You
+could fix it by clearing the emulator but it is probably easier to comment out
+lines that look similar to this in
+`service/app/handler_process_received_event.go`:
+
+```
+exists, err := adapters.Events.Exists(ctx, cmd.event.Id())
+if err != nil {
+   return errors.Wrap(err, "error checking if event exists")
+}
+
+if exists {
+   return nil
+}
+```
+
 
 ## Building and running
 
