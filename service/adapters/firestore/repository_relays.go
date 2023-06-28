@@ -28,7 +28,7 @@ func (r *RelayRepository) Save(registration domain.Registration) error {
 	for _, relayAddress := range registration.Relays() {
 		relayDocPath := r.client.Collection(collectionRelays).Doc(relayAddressAsKey(relayAddress))
 		relayDocData := map[string]any{
-			"address": relayAddress,
+			"address": relayAddress.String(),
 		}
 		if err := r.tx.Set(relayDocPath, relayDocData, firestore.MergeAll); err != nil {
 			return errors.Wrap(err, "error creating the relay doc")
