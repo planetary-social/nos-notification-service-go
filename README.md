@@ -2,18 +2,42 @@
 
 ## How to do local development
 
-1. Get an APNs certificate.
-   1. Obtain a certificate from Apple (see ["Obtain a provider certificate from Apple"][get-apns-cert]).
-   2. Export the certificate from your keychain in the PKCS#12 format.
-2. Start the docker daemon.
-3. Run `make recreate-emulator` to start the Firestore emulator using Docker compose.
-4. Run the following command changing `NOTIFICATIONS_APNS_CERTIFICATE_PATH` and `NOTIFICATIONS_APNS_CERTIFICATE_PASSWORD`:
+### Obtaining an APNs certificate
+
+1. Obtain a certificate from Apple (see ["Obtain a provider certificate from Apple"][get-apns-cert]).
+2. Export the certificate from your keychain in the PKCS#12 format.
+
+### Run the service
+
+You have two options when it comes to using Firestore: a local emulator using
+Docker or a real Firestore project that we setup for development.
+
+#### Using Firestore emulator
+
+1. Start the docker daemon.
+2. Run `make recreate-emulator` to start the Firestore emulator using Docker compose.
+3. Run the following command changing `NOTIFICATIONS_APNS_CERTIFICATE_PATH` and `NOTIFICATIONS_APNS_CERTIFICATE_PASSWORD`:
 
 ```
-NOTIFICATIONS_APNS_CERTIFICATE_PATH=/path/to/your/apns/cert.p12 \
+NOTIFICATIONS_APNS_CERTIFICATE_PATH="/path/to/your/apns/cert.p12" \
 NOTIFICATIONS_APNS_CERTIFICATE_PASSWORD="your cert password if you set one" \
 FIRESTORE_EMULATOR_HOST=localhost:8200 \
 NOTIFICATIONS_FIRESTORE_PROJECT_ID=test-project-id \
+NOTIFICATIONS_APNS_TOPIC=com.verse.Nos \
+NOTIFICATIONS_ENVIRONMENT=DEVELOPMENT \
+go run ./cmd/notification-service
+```
+
+#### Using `nos-notification-service-dev` project
+
+1. [Download credentials for the project.][get-firebase-credentials]
+2. Run the following command changing `NOTIFICATIONS_APNS_CERTIFICATE_PATH`, `NOTIFICATIONS_APNS_CERTIFICATE_PASSWORD` and `NOTIFICATIONS_FIRESTORE_CREDENTIALS_JSON_PATH`:
+
+```
+NOTIFICATIONS_APNS_CERTIFICATE_PATH="/path/to/your/apns/cert.p12" \
+NOTIFICATIONS_APNS_CERTIFICATE_PASSWORD="your cert password if you set one" \
+NOTIFICATIONS_FIRESTORE_CREDENTIALS_JSON_PATH="/path/to/your/credentials/file.json" \
+NOTIFICATIONS_FIRESTORE_PROJECT_ID="nos-notification-service-dev" \
 NOTIFICATIONS_APNS_TOPIC=com.verse.Nos \
 NOTIFICATIONS_ENVIRONMENT=DEVELOPMENT \
 go run ./cmd/notification-service
@@ -106,3 +130,4 @@ but you shouldn't ever have to set this in production.
 
 
 [get-apns-cert]: https://developer.apple.com/documentation/usernotifications/setting_up_a_remote_notification_server/establishing_a_certificate-based_connection_to_apns#2947597
+[get-firebase-credentials]: https://firebase.google.com/docs/admin/setup#initialize_the_sdk_in_non-google_environments
