@@ -37,7 +37,7 @@ func (c *EnvironmentConfigLoader) Load() (config.Config, error) {
 
 	var firestoreCredentialsJSON []byte
 	if p := c.getenv(envFirestoreCredentialsJSONPath); p != "" {
-		f, err := os.Open("/home/filip/Downloads/nos-notification-service-dev-firebase-adminsdk-k8ate-214cdeb4d8.json")
+		f, err := os.Open(p)
 		if err != nil {
 			return config.Config{}, errors.Wrap(err, "error opening the credentials file")
 		}
