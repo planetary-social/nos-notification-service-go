@@ -14,6 +14,7 @@ const (
 	envPrefix = "NOTIFICATIONS"
 
 	envNostrListenAddress           = "NOSTR_LISTEN_ADDRESS"
+	envMetricsListenAddress         = "METRICS_LISTEN_ADDRESS"
 	envFirestoreProjectID           = "FIRESTORE_PROJECT_ID"
 	envFirestoreCredentialsJSONPath = "FIRESTORE_CREDENTIALS_JSON_PATH"
 	envAPNSTopic                    = "APNS_TOPIC"
@@ -52,6 +53,7 @@ func (c *EnvironmentConfigLoader) Load() (config.Config, error) {
 
 	return config.NewConfig(
 		c.getenv(envNostrListenAddress),
+		c.getenv(envMetricsListenAddress),
 		c.getenv(envFirestoreProjectID),
 		firestoreCredentialsJSON,
 		c.getenv(envAPNSTopic),

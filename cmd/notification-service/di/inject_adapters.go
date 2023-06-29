@@ -9,6 +9,7 @@ import (
 	"github.com/planetary-social/go-notification-service/internal/logging"
 	"github.com/planetary-social/go-notification-service/service/adapters/apns"
 	"github.com/planetary-social/go-notification-service/service/adapters/firestore"
+	"github.com/planetary-social/go-notification-service/service/adapters/prometheus"
 	"github.com/planetary-social/go-notification-service/service/app"
 	"github.com/planetary-social/go-notification-service/service/config"
 )
@@ -47,11 +48,17 @@ var firestoreTxAdaptersSet = wire.NewSet(
 var adaptersSet = wire.NewSet(
 	apns.NewAPNS,
 	wire.Bind(new(app.APNS), new(*apns.APNS)),
+
+	prometheus.NewPrometheus,
+	wire.Bind(new(app.Metrics), new(*prometheus.Prometheus)),
 )
 
 var integrationAdaptersSet = wire.NewSet(
 	apns.NewAPNSMock,
 	wire.Bind(new(app.APNS), new(*apns.APNSMock)),
+
+	prometheus.NewPrometheus,
+	wire.Bind(new(app.Metrics), new(*prometheus.Prometheus)),
 )
 
 func newFirestoreClient(ctx context.Context, config config.Config, logger logging.Logger) (*googlefirestore.Client, func(), error) {

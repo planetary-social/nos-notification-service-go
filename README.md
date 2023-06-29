@@ -83,6 +83,13 @@ standard library.
 
 Optional, defaults to `:8008` if empty.
 
+### `NOTIFICATIONS_METRICS_LISTEN_ADDRESS`
+
+Listen address for the prometheus metrics server in the format accepted by the
+standard library. The metrics are exposed under path `/metrics`.
+
+Optional, defaults to `:8009` if empty.
+
 ### `NOTIFICATIONS_FIRESTORE_PROJECT_ID`
 
 Your Firestore project id.

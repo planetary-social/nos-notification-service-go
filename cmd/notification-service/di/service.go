@@ -13,6 +13,7 @@ import (
 type Service struct {
 	app                     app.Application
 	server                  http.Server
+	metricsServer           http.MetricsServer
 	downloader              *app.Downloader
 	receivedEventSubscriber *pubsub.ReceivedEventSubscriber
 }
@@ -20,12 +21,14 @@ type Service struct {
 func NewService(
 	app app.Application,
 	server http.Server,
+	metricsServer http.MetricsServer,
 	downloader *app.Downloader,
 	receivedEventSubscriber *pubsub.ReceivedEventSubscriber,
 ) Service {
 	return Service{
 		app:                     app,
 		server:                  server,
+		metricsServer:           metricsServer,
 		downloader:              downloader,
 		receivedEventSubscriber: receivedEventSubscriber,
 	}
@@ -45,6 +48,11 @@ func (s Service) Run(ctx context.Context) error {
 	runners++
 	go func() {
 		errCh <- s.server.ListenAndServe(ctx)
+	}()
+
+	runners++
+	go func() {
+		errCh <- s.metricsServer.ListenAndServe(ctx)
 	}()
 
 	runners++
