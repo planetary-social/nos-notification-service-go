@@ -50,35 +50,10 @@ func NewDownloader(
 
 func (d *Downloader) Run(ctx context.Context) error {
 	for {
-		relayAddresses, err := d.getRelays(ctx)
-		if err != nil {
-			return errors.Wrap(err, "error getting relays")
-		}
-
-		for relayAddress, relayDownloader := range d.relayDownloaders {
-			if !relayAddresses.Contains(relayAddress) {
-				d.logger.Debug().
-					WithField("relay", relayAddress.String()).
-					Message("deleting a relay downloader")
-				delete(d.relayDownloaders, relayAddress)
-				relayDownloader.Stop()
-			}
-		}
-
-		for _, relayAddress := range relayAddresses.List() {
-			if _, ok := d.relayDownloaders[relayAddress]; !ok {
-				d.logger.Debug().
-					WithField("relay", relayAddress.String()).
-					Message("creating a relay downloader")
-				relayDownloader := NewRelayDownloader(
-					ctx,
-					d.transactionProvider,
-					d.receivedEventPublisher,
-					d.logger,
-					relayAddress,
-				)
-				d.relayDownloaders[relayAddress] = relayDownloader
-			}
+		if err := d.updateRelays(ctx); err != nil {
+			d.logger.Error().
+				WithError(err).
+				Message("error updating relays")
 		}
 
 		select {
@@ -87,6 +62,41 @@ func (d *Downloader) Run(ctx context.Context) error {
 			return ctx.Err()
 		}
 	}
+}
+
+func (d *Downloader) updateRelays(ctx context.Context) error {
+	relayAddresses, err := d.getRelays(ctx)
+	if err != nil {
+		return errors.Wrap(err, "error getting relays")
+	}
+
+	for relayAddress, relayDownloader := range d.relayDownloaders {
+		if !relayAddresses.Contains(relayAddress) {
+			d.logger.Debug().
+				WithField("relay", relayAddress.String()).
+				Message("deleting a relay downloader")
+			delete(d.relayDownloaders, relayAddress)
+			relayDownloader.Stop()
+		}
+	}
+
+	for _, relayAddress := range relayAddresses.List() {
+		if _, ok := d.relayDownloaders[relayAddress]; !ok {
+			d.logger.Debug().
+				WithField("relay", relayAddress.String()).
+				Message("creating a relay downloader")
+			relayDownloader := NewRelayDownloader(
+				ctx,
+				d.transactionProvider,
+				d.receivedEventPublisher,
+				d.logger,
+				relayAddress,
+			)
+			d.relayDownloaders[relayAddress] = relayDownloader
+		}
+	}
+
+	return nil
 }
 
 func (d *Downloader) getRelays(ctx context.Context) (*internal.Set[domain.RelayAddress], error) {
