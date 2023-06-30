@@ -24,18 +24,21 @@ func NewPrometheus() *Prometheus {
 		applicationHandlerCallsCounter: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "application_handler_calls_total",
+				Help: "Total number of calls to application handlers.",
 			},
 			[]string{labelHandlerName},
 		),
 		applicationHandlerCallDurationHistogram: promauto.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name: "application_handler_calls_duration",
+				Help: "Duration of calls to application handlers in seconds.",
 			},
 			[]string{labelHandlerName},
 		),
 		relayDownloaderStateGauge: promauto.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "relay_downloader_count",
+				Help: "Number of running relay downloaders.",
 			},
 			[]string{labelRelayDownloaderState},
 		),
