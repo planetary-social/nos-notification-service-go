@@ -16,7 +16,8 @@ var (
 )
 
 type Config struct {
-	nostrListenAddress string
+	nostrListenAddress   string
+	metricsListenAddress string
 
 	firestoreProjectID       string
 	firestoreCredentialsJSON []byte
@@ -30,6 +31,7 @@ type Config struct {
 
 func NewConfig(
 	nostrListenAddress string,
+	metricsListenAddress string,
 	firestoreProjectID string,
 	firestoreCredentialsJSON []byte,
 	apnsTopic string,
@@ -39,6 +41,7 @@ func NewConfig(
 ) (Config, error) {
 	c := Config{
 		nostrListenAddress:       nostrListenAddress,
+		metricsListenAddress:     metricsListenAddress,
 		firestoreProjectID:       firestoreProjectID,
 		firestoreCredentialsJSON: firestoreCredentialsJSON,
 		apnsTopic:                apnsTopic,
@@ -57,6 +60,10 @@ func NewConfig(
 
 func (c *Config) NostrListenAddress() string {
 	return c.nostrListenAddress
+}
+
+func (c *Config) MetricsListenAddress() string {
+	return c.metricsListenAddress
 }
 
 func (c *Config) FirestoreProjectID() string {
@@ -87,11 +94,19 @@ func (c *Config) setDefaults() {
 	if c.nostrListenAddress == "" {
 		c.nostrListenAddress = ":8008"
 	}
+
+	if c.metricsListenAddress == "" {
+		c.metricsListenAddress = ":8009"
+	}
 }
 
 func (c *Config) validate() error {
 	if c.nostrListenAddress == "" {
 		return errors.New("missing nostr listen address")
+	}
+
+	if c.metricsListenAddress == "" {
+		return errors.New("missing metrics listen address")
 	}
 
 	if c.firestoreProjectID == "" {

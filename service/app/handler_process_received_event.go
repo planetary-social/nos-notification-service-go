@@ -23,6 +23,7 @@ type ProcessReceivedEventHandler struct {
 	generator           *notifications.Generator
 	apns                APNS
 	logger              logging.Logger
+	metrics             Metrics
 }
 
 func NewProcessReceivedEventHandler(
@@ -30,16 +31,20 @@ func NewProcessReceivedEventHandler(
 	generator *notifications.Generator,
 	apns APNS,
 	logger logging.Logger,
+	metrics Metrics,
 ) *ProcessReceivedEventHandler {
 	return &ProcessReceivedEventHandler{
 		transactionProvider: transactionProvider,
 		generator:           generator,
 		apns:                apns,
 		logger:              logger.New("processReceivedEventHandler"),
+		metrics:             metrics,
 	}
 }
 
 func (h *ProcessReceivedEventHandler) Handle(ctx context.Context, cmd ProcessReceivedEvent) error {
+	defer h.metrics.TrackApplicationCall("processReceivedEvent").End()
+
 	h.logger.Debug().
 		WithField("relay", cmd.relay.String()).
 		WithField("event.id", cmd.event.Id().Hex()).

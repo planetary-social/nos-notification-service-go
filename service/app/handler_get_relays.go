@@ -9,17 +9,22 @@ import (
 
 type GetRelaysHandler struct {
 	transactionProvider TransactionProvider
+	metrics             Metrics
 }
 
 func NewGetRelaysHandler(
 	transactionProvider TransactionProvider,
+	metrics Metrics,
 ) *GetRelaysHandler {
 	return &GetRelaysHandler{
 		transactionProvider: transactionProvider,
+		metrics:             metrics,
 	}
 }
 
 func (h *GetRelaysHandler) Handle(ctx context.Context) ([]domain.RelayAddress, error) {
+	defer h.metrics.TrackApplicationCall("getRelays").End()
+
 	var result []domain.RelayAddress
 	if err := h.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
 		tmp, err := adapters.Relays.GetRelays(ctx)

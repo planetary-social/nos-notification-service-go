@@ -8,6 +8,7 @@ import (
 
 var portsSet = wire.NewSet(
 	http.NewServer,
+	http.NewMetricsServer,
 
 	pubsub.NewReceivedEventSubscriber,
 )

@@ -9,17 +9,22 @@ import (
 
 type GetTokensHandler struct {
 	transactionProvider TransactionProvider
+	metrics             Metrics
 }
 
 func NewGetTokensHandler(
 	transactionProvider TransactionProvider,
+	metrics Metrics,
 ) *GetTokensHandler {
 	return &GetTokensHandler{
 		transactionProvider: transactionProvider,
+		metrics:             metrics,
 	}
 }
 
 func (h *GetTokensHandler) Handle(ctx context.Context, publicKey domain.PublicKey) ([]domain.APNSToken, error) {
+	defer h.metrics.TrackApplicationCall("getTokens").End()
+
 	var result []domain.APNSToken
 	if err := h.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
 		tmp, err := adapters.PublicKeys.GetAPNSTokens(ctx, publicKey)

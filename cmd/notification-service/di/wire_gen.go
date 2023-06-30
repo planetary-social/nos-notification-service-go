@@ -14,6 +14,7 @@ import (
 	"github.com/planetary-social/go-notification-service/internal/logging"
 	"github.com/planetary-social/go-notification-service/service/adapters/apns"
 	"github.com/planetary-social/go-notification-service/service/adapters/firestore"
+	"github.com/planetary-social/go-notification-service/service/adapters/prometheus"
 	"github.com/planetary-social/go-notification-service/service/adapters/pubsub"
 	"github.com/planetary-social/go-notification-service/service/app"
 	"github.com/planetary-social/go-notification-service/service/config"
@@ -40,17 +41,18 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 		cleanup()
 		return Service{}, nil, err
 	}
-	processReceivedEventHandler := app.NewProcessReceivedEventHandler(transactionProvider, generator, apnsAPNS, loggingLogger)
-	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider, loggingLogger)
+	prometheusPrometheus := prometheus.NewPrometheus()
+	processReceivedEventHandler := app.NewProcessReceivedEventHandler(transactionProvider, generator, apnsAPNS, loggingLogger, prometheusPrometheus)
+	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider, loggingLogger, prometheusPrometheus)
 	commands := app.Commands{
 		ProcessReceivedEvent: processReceivedEventHandler,
 		SaveRegistration:     saveRegistrationHandler,
 	}
-	getRelaysHandler := app.NewGetRelaysHandler(transactionProvider)
-	getPublicKeysHandler := app.NewGetPublicKeysHandler(transactionProvider)
-	getTokensHandler := app.NewGetTokensHandler(transactionProvider)
+	getRelaysHandler := app.NewGetRelaysHandler(transactionProvider, prometheusPrometheus)
+	getPublicKeysHandler := app.NewGetPublicKeysHandler(transactionProvider, prometheusPrometheus)
+	getTokensHandler := app.NewGetTokensHandler(transactionProvider, prometheusPrometheus)
 	receivedEventPubSub := pubsub.NewReceivedEventPubSub()
-	getEventsHandler := app.NewGetEventsHandler(transactionProvider, receivedEventPubSub)
+	getEventsHandler := app.NewGetEventsHandler(transactionProvider, receivedEventPubSub, prometheusPrometheus)
 	queries := app.Queries{
 		GetRelays:     getRelaysHandler,
 		GetPublicKeys: getPublicKeysHandler,
@@ -62,9 +64,10 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 		Queries:  queries,
 	}
 	server := http.NewServer(configConfig, application, loggingLogger)
+	metricsServer := http.NewMetricsServer(configConfig, loggingLogger)
 	downloader := app.NewDownloader(transactionProvider, receivedEventPubSub, loggingLogger)
 	receivedEventSubscriber := pubsub2.NewReceivedEventSubscriber(receivedEventPubSub, processReceivedEventHandler, loggingLogger)
-	service := NewService(application, server, downloader, receivedEventSubscriber)
+	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber)
 	return service, func() {
 		cleanup()
 	}, nil
@@ -86,17 +89,18 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 		cleanup()
 		return Service{}, nil, err
 	}
-	processReceivedEventHandler := app.NewProcessReceivedEventHandler(transactionProvider, generator, apnsMock, loggingLogger)
-	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider, loggingLogger)
+	prometheusPrometheus := prometheus.NewPrometheus()
+	processReceivedEventHandler := app.NewProcessReceivedEventHandler(transactionProvider, generator, apnsMock, loggingLogger, prometheusPrometheus)
+	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider, loggingLogger, prometheusPrometheus)
 	commands := app.Commands{
 		ProcessReceivedEvent: processReceivedEventHandler,
 		SaveRegistration:     saveRegistrationHandler,
 	}
-	getRelaysHandler := app.NewGetRelaysHandler(transactionProvider)
-	getPublicKeysHandler := app.NewGetPublicKeysHandler(transactionProvider)
-	getTokensHandler := app.NewGetTokensHandler(transactionProvider)
+	getRelaysHandler := app.NewGetRelaysHandler(transactionProvider, prometheusPrometheus)
+	getPublicKeysHandler := app.NewGetPublicKeysHandler(transactionProvider, prometheusPrometheus)
+	getTokensHandler := app.NewGetTokensHandler(transactionProvider, prometheusPrometheus)
 	receivedEventPubSub := pubsub.NewReceivedEventPubSub()
-	getEventsHandler := app.NewGetEventsHandler(transactionProvider, receivedEventPubSub)
+	getEventsHandler := app.NewGetEventsHandler(transactionProvider, receivedEventPubSub, prometheusPrometheus)
 	queries := app.Queries{
 		GetRelays:     getRelaysHandler,
 		GetPublicKeys: getPublicKeysHandler,
@@ -108,9 +112,10 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 		Queries:  queries,
 	}
 	server := http.NewServer(configConfig, application, loggingLogger)
+	metricsServer := http.NewMetricsServer(configConfig, loggingLogger)
 	downloader := app.NewDownloader(transactionProvider, receivedEventPubSub, loggingLogger)
 	receivedEventSubscriber := pubsub2.NewReceivedEventSubscriber(receivedEventPubSub, processReceivedEventHandler, loggingLogger)
-	service := NewService(application, server, downloader, receivedEventSubscriber)
+	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber)
 	return service, func() {
 		cleanup()
 	}, nil

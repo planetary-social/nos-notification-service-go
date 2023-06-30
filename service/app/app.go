@@ -100,3 +100,11 @@ func (r ReceivedEvent) Event() domain.Event {
 type ReceivedEventSubscriber interface {
 	Subscribe(ctx context.Context) <-chan ReceivedEvent
 }
+
+type Metrics interface {
+	TrackApplicationCall(handlerName string) ApplicationCall
+}
+
+type ApplicationCall interface {
+	End()
+}
