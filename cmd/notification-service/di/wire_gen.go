@@ -43,16 +43,16 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	}
 	prometheusPrometheus := prometheus.NewPrometheus()
 	processReceivedEventHandler := app.NewProcessReceivedEventHandler(transactionProvider, generator, apnsAPNS, loggingLogger, prometheusPrometheus)
-	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider, loggingLogger)
+	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider, loggingLogger, prometheusPrometheus)
 	commands := app.Commands{
 		ProcessReceivedEvent: processReceivedEventHandler,
 		SaveRegistration:     saveRegistrationHandler,
 	}
-	getRelaysHandler := app.NewGetRelaysHandler(transactionProvider)
-	getPublicKeysHandler := app.NewGetPublicKeysHandler(transactionProvider)
-	getTokensHandler := app.NewGetTokensHandler(transactionProvider)
+	getRelaysHandler := app.NewGetRelaysHandler(transactionProvider, prometheusPrometheus)
+	getPublicKeysHandler := app.NewGetPublicKeysHandler(transactionProvider, prometheusPrometheus)
+	getTokensHandler := app.NewGetTokensHandler(transactionProvider, prometheusPrometheus)
 	receivedEventPubSub := pubsub.NewReceivedEventPubSub()
-	getEventsHandler := app.NewGetEventsHandler(transactionProvider, receivedEventPubSub)
+	getEventsHandler := app.NewGetEventsHandler(transactionProvider, receivedEventPubSub, prometheusPrometheus)
 	queries := app.Queries{
 		GetRelays:     getRelaysHandler,
 		GetPublicKeys: getPublicKeysHandler,
@@ -91,16 +91,16 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 	}
 	prometheusPrometheus := prometheus.NewPrometheus()
 	processReceivedEventHandler := app.NewProcessReceivedEventHandler(transactionProvider, generator, apnsMock, loggingLogger, prometheusPrometheus)
-	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider, loggingLogger)
+	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider, loggingLogger, prometheusPrometheus)
 	commands := app.Commands{
 		ProcessReceivedEvent: processReceivedEventHandler,
 		SaveRegistration:     saveRegistrationHandler,
 	}
-	getRelaysHandler := app.NewGetRelaysHandler(transactionProvider)
-	getPublicKeysHandler := app.NewGetPublicKeysHandler(transactionProvider)
-	getTokensHandler := app.NewGetTokensHandler(transactionProvider)
+	getRelaysHandler := app.NewGetRelaysHandler(transactionProvider, prometheusPrometheus)
+	getPublicKeysHandler := app.NewGetPublicKeysHandler(transactionProvider, prometheusPrometheus)
+	getTokensHandler := app.NewGetTokensHandler(transactionProvider, prometheusPrometheus)
 	receivedEventPubSub := pubsub.NewReceivedEventPubSub()
-	getEventsHandler := app.NewGetEventsHandler(transactionProvider, receivedEventPubSub)
+	getEventsHandler := app.NewGetEventsHandler(transactionProvider, receivedEventPubSub, prometheusPrometheus)
 	queries := app.Queries{
 		GetRelays:     getRelaysHandler,
 		GetPublicKeys: getPublicKeysHandler,
