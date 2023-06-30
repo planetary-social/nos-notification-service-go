@@ -47,22 +47,22 @@ func (s Service) Run(ctx context.Context) error {
 
 	runners++
 	go func() {
-		errCh <- s.server.ListenAndServe(ctx)
+		errCh <- errors.Wrap(s.server.ListenAndServe(ctx), "server error")
 	}()
 
 	runners++
 	go func() {
-		errCh <- s.metricsServer.ListenAndServe(ctx)
+		errCh <- errors.Wrap(s.metricsServer.ListenAndServe(ctx), "metrics server error")
 	}()
 
 	runners++
 	go func() {
-		errCh <- s.downloader.Run(ctx)
+		errCh <- errors.Wrap(s.downloader.Run(ctx), "downloader error")
 	}()
 
 	runners++
 	go func() {
-		errCh <- s.receivedEventSubscriber.Run(ctx)
+		errCh <- errors.Wrap(s.receivedEventSubscriber.Run(ctx), "received event subscriber error")
 	}()
 
 	var err error
