@@ -20,7 +20,7 @@ const (
 	reconnectEvery           = 1 * time.Minute
 	manageSubscriptionsEvery = 1 * time.Minute
 
-	howFarIntoThePastToLook = 365 * 24 * time.Hour
+	howFarIntoThePastToLook = 7 * 24 * time.Hour
 
 	storeMetricsEvery = 10 * time.Second
 )
