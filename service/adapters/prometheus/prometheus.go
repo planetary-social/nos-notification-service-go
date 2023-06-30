@@ -9,12 +9,14 @@ import (
 )
 
 const (
-	labelHandlerName = "handlerName"
+	labelHandlerName          = "handlerName"
+	labelRelayDownloaderState = "state"
 )
 
 type Prometheus struct {
 	applicationHandlerCallsCounter          *prometheus.CounterVec
 	applicationHandlerCallDurationHistogram *prometheus.HistogramVec
+	relayDownloaderStateGauge               *prometheus.GaugeVec
 }
 
 func NewPrometheus() *Prometheus {
@@ -31,11 +33,21 @@ func NewPrometheus() *Prometheus {
 			},
 			[]string{labelHandlerName},
 		),
+		relayDownloaderStateGauge: promauto.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "relay_downloader_count",
+			},
+			[]string{labelRelayDownloaderState},
+		),
 	}
 }
 
 func (p *Prometheus) TrackApplicationCall(handlerName string) app.ApplicationCall {
 	return NewApplicationCall(p, handlerName)
+}
+
+func (p *Prometheus) MeasureRelayDownloadersState(n int, state app.RelayDownloaderState) {
+	p.relayDownloaderStateGauge.With(prometheus.Labels{labelRelayDownloaderState: state.String()}).Set(float64(n))
 }
 
 type ApplicationCall struct {

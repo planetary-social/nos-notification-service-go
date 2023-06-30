@@ -103,6 +103,7 @@ type ReceivedEventSubscriber interface {
 
 type Metrics interface {
 	TrackApplicationCall(handlerName string) ApplicationCall
+	MeasureRelayDownloadersState(n int, state RelayDownloaderState)
 }
 
 type ApplicationCall interface {

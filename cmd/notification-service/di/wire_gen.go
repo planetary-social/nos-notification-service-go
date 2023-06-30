@@ -65,7 +65,7 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	}
 	server := http.NewServer(configConfig, application, loggingLogger)
 	metricsServer := http.NewMetricsServer(configConfig, loggingLogger)
-	downloader := app.NewDownloader(transactionProvider, receivedEventPubSub, loggingLogger)
+	downloader := app.NewDownloader(transactionProvider, receivedEventPubSub, loggingLogger, prometheusPrometheus)
 	receivedEventSubscriber := pubsub2.NewReceivedEventSubscriber(receivedEventPubSub, processReceivedEventHandler, loggingLogger)
 	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber)
 	return service, func() {
@@ -113,7 +113,7 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 	}
 	server := http.NewServer(configConfig, application, loggingLogger)
 	metricsServer := http.NewMetricsServer(configConfig, loggingLogger)
-	downloader := app.NewDownloader(transactionProvider, receivedEventPubSub, loggingLogger)
+	downloader := app.NewDownloader(transactionProvider, receivedEventPubSub, loggingLogger, prometheusPrometheus)
 	receivedEventSubscriber := pubsub2.NewReceivedEventSubscriber(receivedEventPubSub, processReceivedEventHandler, loggingLogger)
 	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber)
 	return service, func() {

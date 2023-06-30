@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/boreq/errors"
@@ -20,6 +21,8 @@ const (
 	manageSubscriptionsEvery = 1 * time.Minute
 
 	howFarIntoThePastToLook = 365 * 24 * time.Hour
+
+	storeMetricsEvery = 10 * time.Second
 )
 
 type ReceivedEventPublisher interface {
@@ -30,25 +33,31 @@ type Downloader struct {
 	transactionProvider    TransactionProvider
 	receivedEventPublisher ReceivedEventPublisher
 	logger                 logging.Logger
+	metrics                Metrics
 
-	relayDownloaders map[domain.RelayAddress]*RelayDownloader
+	relayDownloaders     map[domain.RelayAddress]*RelayDownloader
+	relayDownloadersLock sync.Mutex
 }
 
 func NewDownloader(
 	transaction TransactionProvider,
 	receivedEventPublisher ReceivedEventPublisher,
 	logger logging.Logger,
+	metrics Metrics,
 ) *Downloader {
 	return &Downloader{
 		transactionProvider:    transaction,
 		receivedEventPublisher: receivedEventPublisher,
 		logger:                 logger.New("downloader"),
+		metrics:                metrics,
 
 		relayDownloaders: map[domain.RelayAddress]*RelayDownloader{},
 	}
 }
 
 func (d *Downloader) Run(ctx context.Context) error {
+	go d.storeMetricsLoop(ctx)
+
 	for {
 		if err := d.updateRelays(ctx); err != nil {
 			d.logger.Error().
@@ -64,11 +73,42 @@ func (d *Downloader) Run(ctx context.Context) error {
 	}
 }
 
+func (d *Downloader) storeMetricsLoop(ctx context.Context) {
+	for {
+		d.storeMetrics(ctx)
+
+		select {
+		case <-time.After(storeMetricsEvery):
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func (d *Downloader) storeMetrics(ctx context.Context) {
+	d.relayDownloadersLock.Lock()
+	defer d.relayDownloadersLock.Unlock()
+
+	v := make(map[RelayDownloaderState]int)
+
+	for _, downloader := range d.relayDownloaders {
+		s := downloader.GetState()
+		v[s] = v[s] + 1
+	}
+
+	for state, n := range v {
+		d.metrics.MeasureRelayDownloadersState(n, state)
+	}
+}
+
 func (d *Downloader) updateRelays(ctx context.Context) error {
 	relayAddresses, err := d.getRelays(ctx)
 	if err != nil {
 		return errors.Wrap(err, "error getting relays")
 	}
+
+	d.relayDownloadersLock.Lock()
+	defer d.relayDownloadersLock.Unlock()
 
 	for relayAddress, relayDownloader := range d.relayDownloaders {
 		if !relayAddresses.Contains(relayAddress) {
@@ -116,10 +156,27 @@ func (d *Downloader) getRelays(ctx context.Context) (*internal.Set[domain.RelayA
 	return internal.NewSet(relays), nil
 }
 
+type RelayDownloaderState struct {
+	s string
+}
+
+func (r RelayDownloaderState) String() string {
+	return r.s
+}
+
+var (
+	RelayDownloaderStateInitializing = RelayDownloaderState{"initializing"}
+	RelayDownloaderStateConnected    = RelayDownloaderState{"connected"}
+	RelayDownloaderStateDisconnected = RelayDownloaderState{"disconnected"}
+)
+
 type RelayDownloader struct {
 	transactionProvider    TransactionProvider
 	receivedEventPublisher ReceivedEventPublisher
 	logger                 logging.Logger
+
+	state      RelayDownloaderState
+	stateMutex sync.Mutex
 
 	address domain.RelayAddress
 	cancel  context.CancelFunc
@@ -137,6 +194,8 @@ func NewRelayDownloader(
 		transactionProvider:    transactionProvider,
 		receivedEventPublisher: receivedEventPublisher,
 		logger:                 logger.New(fmt.Sprintf("relayDownloader(%s)", address)),
+
+		state: RelayDownloaderStateInitializing,
 
 		cancel:  cancel,
 		address: address,
@@ -166,12 +225,16 @@ func (d *RelayDownloader) connectAndDownload(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	defer d.setState(RelayDownloaderStateDisconnected)
+
 	d.logger.Debug().Message("connecting")
 
 	conn, _, err := websocket.DefaultDialer.DialContext(ctx, d.address.String(), nil)
 	if err != nil {
 		return errors.Wrap(err, "error dialing the relay")
 	}
+
+	d.setState(RelayDownloaderStateConnected)
 
 	go func() {
 		<-ctx.Done()
@@ -195,9 +258,7 @@ func (d *RelayDownloader) connectAndDownload(ctx context.Context) error {
 		if err := d.handleMessage(messageBytes); err != nil {
 			return errors.Wrap(err, "error handling message")
 		}
-
 	}
-
 }
 
 func (d *RelayDownloader) handleMessage(messageBytes []byte) error {
@@ -226,6 +287,18 @@ func (d *RelayDownloader) handleMessage(messageBytes []byte) error {
 	}
 
 	return nil
+}
+
+func (d *RelayDownloader) setState(state RelayDownloaderState) {
+	d.stateMutex.Lock()
+	defer d.stateMutex.Unlock()
+	d.state = state
+}
+
+func (d *RelayDownloader) GetState() RelayDownloaderState {
+	d.stateMutex.Lock()
+	defer d.stateMutex.Unlock()
+	return d.state
 }
 
 func (d *RelayDownloader) manageSubs(
