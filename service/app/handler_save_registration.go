@@ -18,19 +18,24 @@ func NewSaveRegistration(registration domain.Registration) SaveRegistration {
 type SaveRegistrationHandler struct {
 	transactionProvider TransactionProvider
 	logger              logging.Logger
+	metrics             Metrics
 }
 
 func NewSaveRegistrationHandler(
 	transactionProvider TransactionProvider,
 	logger logging.Logger,
+	metrics Metrics,
 ) *SaveRegistrationHandler {
 	return &SaveRegistrationHandler{
 		transactionProvider: transactionProvider,
 		logger:              logger.New("saveRegistrationHandler"),
+		metrics:             metrics,
 	}
 }
 
 func (h *SaveRegistrationHandler) Handle(ctx context.Context, cmd SaveRegistration) error {
+	defer h.metrics.TrackApplicationCall("saveRegistration").End()
+
 	h.logger.Debug().
 		WithField("apnsToken", cmd.registration.APNSToken().Hex()).
 		WithField("publicKey", cmd.registration.PublicKey().Hex()).

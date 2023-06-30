@@ -40,19 +40,24 @@ func (e *EventOrEOSEOrError) Err() error {
 type GetEventsHandler struct {
 	transactionProvider     TransactionProvider
 	receivedEventSubscriber ReceivedEventSubscriber
+	metrics                 Metrics
 }
 
 func NewGetEventsHandler(
 	transactionProvider TransactionProvider,
 	receivedEventSubscriber ReceivedEventSubscriber,
+	metrics Metrics,
 ) *GetEventsHandler {
 	return &GetEventsHandler{
 		transactionProvider:     transactionProvider,
 		receivedEventSubscriber: receivedEventSubscriber,
+		metrics:                 metrics,
 	}
 }
 
 func (h *GetEventsHandler) Handle(ctx context.Context, filters domain.Filters) <-chan EventOrEOSEOrError {
+	defer h.metrics.TrackApplicationCall("getEvents").End()
+
 	ch := make(chan EventOrEOSEOrError)
 	go h.send(ctx, filters, ch)
 	return ch

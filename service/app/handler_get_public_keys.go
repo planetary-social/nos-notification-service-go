@@ -9,17 +9,22 @@ import (
 
 type GetPublicKeysHandler struct {
 	transactionProvider TransactionProvider
+	metrics             Metrics
 }
 
 func NewGetPublicKeysHandler(
 	transactionProvider TransactionProvider,
+	metrics Metrics,
 ) *GetPublicKeysHandler {
 	return &GetPublicKeysHandler{
 		transactionProvider: transactionProvider,
+		metrics:             metrics,
 	}
 }
 
 func (h *GetPublicKeysHandler) Handle(ctx context.Context, relay domain.RelayAddress) ([]domain.PublicKey, error) {
+	defer h.metrics.TrackApplicationCall("getPublicKeys").End()
+
 	var result []domain.PublicKey
 	if err := h.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
 		tmp, err := adapters.Relays.GetPublicKeys(ctx, relay)
