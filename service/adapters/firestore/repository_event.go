@@ -78,7 +78,7 @@ func (e *EventRepository) SaveNotificationForEvent(notification notifications.No
 
 	notificationDocData := map[string]any{
 		"uuid":    notification.UUID().String(),
-		"token":   notification.APNSToken(),
+		"token":   notification.APNSToken().Hex(),
 		"payload": notification.Payload(),
 	}
 
