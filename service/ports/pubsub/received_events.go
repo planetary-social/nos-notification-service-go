@@ -27,7 +27,7 @@ func NewReceivedEventSubscriber(
 	return &ReceivedEventSubscriber{
 		pubsub:  pubsub,
 		handler: handler,
-		logger:  logger,
+		logger:  logger.New("receivedEventSubscriber"),
 	}
 }
 
