@@ -1,5 +1,5 @@
 // Package pubsub receives internal events.
-package pubsub
+package memorypubsub
 
 import (
 	"context"
@@ -9,19 +9,19 @@ import (
 	"github.com/planetary-social/go-notification-service/service/app"
 )
 
-type ProcessReceivedEventHandler interface {
-	Handle(ctx context.Context, cmd app.ProcessReceivedEvent) error
+type SaveReceivedEventHandler interface {
+	Handle(ctx context.Context, cmd app.SaveReceivedEvent) error
 }
 
 type ReceivedEventSubscriber struct {
 	pubsub  *pubsub.ReceivedEventPubSub
-	handler ProcessReceivedEventHandler
+	handler SaveReceivedEventHandler
 	logger  logging.Logger
 }
 
 func NewReceivedEventSubscriber(
 	pubsub *pubsub.ReceivedEventPubSub,
-	handler ProcessReceivedEventHandler,
+	handler SaveReceivedEventHandler,
 	logger logging.Logger,
 ) *ReceivedEventSubscriber {
 	return &ReceivedEventSubscriber{
@@ -33,7 +33,7 @@ func NewReceivedEventSubscriber(
 
 func (p *ReceivedEventSubscriber) Run(ctx context.Context) error {
 	for v := range p.pubsub.Subscribe(ctx) {
-		cmd := app.NewProcessReceivedEvent(v.Relay(), v.Event())
+		cmd := app.NewSaveReceivedEvent(v.Relay(), v.Event())
 		if err := p.handler.Handle(ctx, cmd); err != nil {
 			p.logger.Error().
 				WithError(err).

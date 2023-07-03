@@ -6,8 +6,9 @@ import (
 	"github.com/boreq/errors"
 	"github.com/hashicorp/go-multierror"
 	"github.com/planetary-social/go-notification-service/service/app"
+	"github.com/planetary-social/go-notification-service/service/ports/firestorepubsub"
 	"github.com/planetary-social/go-notification-service/service/ports/http"
-	"github.com/planetary-social/go-notification-service/service/ports/pubsub"
+	"github.com/planetary-social/go-notification-service/service/ports/memorypubsub"
 )
 
 type Service struct {
@@ -15,7 +16,8 @@ type Service struct {
 	server                  http.Server
 	metricsServer           http.MetricsServer
 	downloader              *app.Downloader
-	receivedEventSubscriber *pubsub.ReceivedEventSubscriber
+	receivedEventSubscriber *memorypubsub.ReceivedEventSubscriber
+	eventSavedSubscriber    *firestorepubsub.EventSavedSubscriber
 }
 
 func NewService(
@@ -23,7 +25,8 @@ func NewService(
 	server http.Server,
 	metricsServer http.MetricsServer,
 	downloader *app.Downloader,
-	receivedEventSubscriber *pubsub.ReceivedEventSubscriber,
+	receivedEventSubscriber *memorypubsub.ReceivedEventSubscriber,
+	eventSavedSubscriber *firestorepubsub.EventSavedSubscriber,
 ) Service {
 	return Service{
 		app:                     app,
@@ -31,6 +34,7 @@ func NewService(
 		metricsServer:           metricsServer,
 		downloader:              downloader,
 		receivedEventSubscriber: receivedEventSubscriber,
+		eventSavedSubscriber:    eventSavedSubscriber,
 	}
 }
 
@@ -63,6 +67,11 @@ func (s Service) Run(ctx context.Context) error {
 	runners++
 	go func() {
 		errCh <- errors.Wrap(s.receivedEventSubscriber.Run(ctx), "received event subscriber error")
+	}()
+
+	runners++
+	go func() {
+		errCh <- errors.Wrap(s.eventSavedSubscriber.Run(ctx), "event saved subscriber error")
 	}()
 
 	var err error

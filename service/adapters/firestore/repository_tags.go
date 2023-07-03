@@ -32,8 +32,8 @@ func NewTagRepository(
 	}
 }
 
-func (e *TagRepository) Save(event domain.Event) error {
-	for _, tag := range event.Tags() {
+func (e *TagRepository) Save(event domain.Event, tags []domain.EventTag) error {
+	for _, tag := range tags {
 		keyTag := encodeStringAsHex(tag.Name().String())
 		keyValue := encodeStringAsHex(tag.FirstValue())
 

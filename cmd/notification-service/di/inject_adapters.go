@@ -21,6 +21,10 @@ var firestoreAdaptersSet = wire.NewSet(
 	wire.Bind(new(app.TransactionProvider), new(*firestore.TransactionProvider)),
 
 	newAdaptersFactoryFn,
+
+	firestore.NewWatermillPublisher,
+	firestore.NewWatermillSubscriber,
+	wire.Bind(new(ports.))
 )
 
 func newAdaptersFactoryFn() firestore.AdaptersFactoryFn {
@@ -43,6 +47,10 @@ var firestoreTxAdaptersSet = wire.NewSet(
 	wire.Bind(new(app.PublicKeyRepository), new(*firestore.PublicKeyRepository)),
 
 	firestore.NewTagRepository,
+	wire.Bind(new(app.TagRepository), new(*firestore.TagRepository)),
+
+	firestore.NewPublisher,
+	wire.Bind(new(app.Publisher), new(*firestore.Publisher)),
 )
 
 var adaptersSet = wire.NewSet(

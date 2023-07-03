@@ -42,11 +42,11 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 		return Service{}, nil, err
 	}
 	prometheusPrometheus := prometheus.NewPrometheus()
-	processReceivedEventHandler := app.NewProcessReceivedEventHandler(transactionProvider, generator, apnsAPNS, loggingLogger, prometheusPrometheus)
+	processReceivedEventHandler := app.NewSaveReceivedEventHandler(transactionProvider, generator, apnsAPNS, loggingLogger, prometheusPrometheus)
 	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider, loggingLogger, prometheusPrometheus)
 	commands := app.Commands{
-		ProcessReceivedEvent: processReceivedEventHandler,
-		SaveRegistration:     saveRegistrationHandler,
+		SaveReceivedEvent: processReceivedEventHandler,
+		SaveRegistration:  saveRegistrationHandler,
 	}
 	getRelaysHandler := app.NewGetRelaysHandler(transactionProvider, prometheusPrometheus)
 	getPublicKeysHandler := app.NewGetPublicKeysHandler(transactionProvider, prometheusPrometheus)
@@ -90,11 +90,11 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 		return Service{}, nil, err
 	}
 	prometheusPrometheus := prometheus.NewPrometheus()
-	processReceivedEventHandler := app.NewProcessReceivedEventHandler(transactionProvider, generator, apnsMock, loggingLogger, prometheusPrometheus)
+	processReceivedEventHandler := app.NewSaveReceivedEventHandler(transactionProvider, generator, apnsMock, loggingLogger, prometheusPrometheus)
 	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider, loggingLogger, prometheusPrometheus)
 	commands := app.Commands{
-		ProcessReceivedEvent: processReceivedEventHandler,
-		SaveRegistration:     saveRegistrationHandler,
+		SaveReceivedEvent: processReceivedEventHandler,
+		SaveRegistration:  saveRegistrationHandler,
 	}
 	getRelaysHandler := app.NewGetRelaysHandler(transactionProvider, prometheusPrometheus)
 	getPublicKeysHandler := app.NewGetPublicKeysHandler(transactionProvider, prometheusPrometheus)
