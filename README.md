@@ -4,7 +4,7 @@
 
 ### Obtaining an APNs certificate
 
-1. Obtain a certificate from Apple (see ["Obtain a provider certificate from Apple"][get-apns-cert]).
+1. Obtain a certificate from Apple (see ["Obtain a provider certificate from Apple"][get-apns-cert]). For development **ensure that you are creating a certificate of type "Apple Push Notification Service SSL (Sanbox)"** to avoid sending notifications in production.
 2. Export the certificate from your keychain in the PKCS#12 format.
 
 ### Run the service
@@ -30,7 +30,7 @@ go run ./cmd/notification-service
 
 #### Using `nos-notification-service-dev` project
 
-1. [Download credentials for the project.][get-firebase-credentials]
+1. [Download credentials for the project][get-firebase-credentials]. **Those are your private credentials don't use them for production**.
 2. Run the following command changing `NOTIFICATIONS_APNS_CERTIFICATE_PATH`, `NOTIFICATIONS_APNS_CERTIFICATE_PASSWORD` and `NOTIFICATIONS_FIRESTORE_CREDENTIALS_JSON_PATH`:
 
 ```
