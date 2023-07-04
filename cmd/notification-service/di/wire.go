@@ -7,6 +7,7 @@ import (
 	"context"
 
 	googlefirestore "cloud.google.com/go/firestore"
+	"github.com/ThreeDotsLabs/watermill"
 	"github.com/google/wire"
 	"github.com/planetary-social/go-notification-service/service/app"
 	"github.com/planetary-social/go-notification-service/service/config"
@@ -45,9 +46,14 @@ func BuildIntegrationService(context.Context, config.Config) (Service, func(), e
 	return Service{}, nil, nil
 }
 
-func buildTransactionFirestoreAdapters(client *googlefirestore.Client, tx *googlefirestore.Transaction) (app.Adapters, error) {
+type buildTransactionFirestoreAdaptersDependencies struct {
+	LoggerAdapter watermill.LoggerAdapter
+}
+
+func buildTransactionFirestoreAdapters(client *googlefirestore.Client, tx *googlefirestore.Transaction, deps buildTransactionFirestoreAdaptersDependencies) (app.Adapters, error) {
 	wire.Build(
 		wire.Struct(new(app.Adapters), "*"),
+		wire.FieldsOf(new(buildTransactionFirestoreAdaptersDependencies), "LoggerAdapter"),
 
 		firestoreTxAdaptersSet,
 	)

@@ -37,8 +37,8 @@ func TestGetEvents(t *testing.T) {
 	event, err := domain.NewEvent(libevent)
 	require.NoError(t, err)
 
-	cmd := app.NewProcessReceivedEvent(fixtures.SomeRelayAddress(), event)
-	err = service.App().Commands.ProcessReceivedEvent.Handle(ctx, cmd)
+	cmd := app.NewSaveReceivedEvent(fixtures.SomeRelayAddress(), event)
+	err = service.App().Commands.SaveReceivedEvent.Handle(ctx, cmd)
 	require.NoError(t, err)
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {

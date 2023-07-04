@@ -13,9 +13,12 @@ type TransactionProvider interface {
 
 type Adapters struct {
 	Registrations RegistrationRepository
-	Events        EventRepository
 	Relays        RelayRepository
 	PublicKeys    PublicKeyRepository
+	Events        EventRepository
+	Tags          TagRepository
+
+	Publisher Publisher
 }
 
 type RegistrationRepository interface {
@@ -33,9 +36,18 @@ type PublicKeyRepository interface {
 
 type EventRepository interface {
 	Save(event domain.Event) error
+	Get(ctx context.Context, id domain.EventId) (domain.Event, error)
 	Exists(ctx context.Context, id domain.EventId) (bool, error)
 	GetEvents(ctx context.Context, filters domain.Filters) <-chan EventOrError
 	SaveNotificationForEvent(notification notifications.Notification) error
+}
+
+type TagRepository interface {
+	Save(event domain.Event, tags []domain.EventTag) error
+}
+
+type Publisher interface {
+	PublishEventSaved(ctx context.Context, id domain.EventId) error
 }
 
 type Application struct {
@@ -44,8 +56,8 @@ type Application struct {
 }
 
 type Commands struct {
-	ProcessReceivedEvent *ProcessReceivedEventHandler
-	SaveRegistration     *SaveRegistrationHandler
+	SaveReceivedEvent *SaveReceivedEventHandler
+	SaveRegistration  *SaveRegistrationHandler
 }
 
 type Queries struct {

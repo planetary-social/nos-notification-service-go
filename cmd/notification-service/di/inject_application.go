@@ -3,7 +3,8 @@ package di
 import (
 	"github.com/google/wire"
 	"github.com/planetary-social/go-notification-service/service/app"
-	"github.com/planetary-social/go-notification-service/service/ports/pubsub"
+	"github.com/planetary-social/go-notification-service/service/ports/firestorepubsub"
+	"github.com/planetary-social/go-notification-service/service/ports/memorypubsub"
 )
 
 var applicationSet = wire.NewSet(
@@ -18,8 +19,11 @@ var commandsSet = wire.NewSet(
 
 	app.NewSaveRegistrationHandler,
 
-	app.NewProcessReceivedEventHandler,
-	wire.Bind(new(pubsub.ProcessReceivedEventHandler), new(*app.ProcessReceivedEventHandler)),
+	app.NewSaveReceivedEventHandler,
+	wire.Bind(new(memorypubsub.SaveReceivedEventHandler), new(*app.SaveReceivedEventHandler)),
+
+	app.NewProcessSavedEventHandler,
+	wire.Bind(new(firestorepubsub.ProcessSavedEventHandler), new(*app.ProcessSavedEventHandler)),
 )
 
 var queriesSet = wire.NewSet(

@@ -21,7 +21,6 @@ const (
 	eventFieldPublicKey = "publicKey"
 	eventFieldCreatedAt = "createdAt"
 	eventFieldKind      = "kind"
-	eventFieldContent   = "content"
 	eventFieldRaw       = "raw"
 )
 
@@ -51,10 +50,6 @@ func (e *EventRepository) Save(event domain.Event) error {
 		return errors.Wrap(err, "error saving under events")
 	}
 
-	if err := e.tagRepository.Save(event); err != nil {
-		return errors.Wrap(err, "error saving in tag repository")
-	}
-
 	return nil
 }
 
@@ -67,6 +62,20 @@ func (e *EventRepository) Exists(ctx context.Context, id domain.EventId) (bool, 
 		return false, errors.Wrap(err, "error checking if document exists")
 	}
 	return true, nil
+}
+
+func (e *EventRepository) Get(ctx context.Context, id domain.EventId) (domain.Event, error) {
+	doc, err := e.client.Collection(collectionEvents).Doc(id.Hex()).Get(ctx)
+	if err != nil {
+		return domain.Event{}, errors.Wrap(err, "error getting a doc")
+	}
+
+	event, err := e.readEvent(doc)
+	if err != nil {
+		return domain.Event{}, errors.Wrap(err, "error reading a doc")
+	}
+
+	return event, nil
 }
 
 func (e *EventRepository) SaveNotificationForEvent(notification notifications.Notification) error {
@@ -202,20 +211,29 @@ func (e *EventRepository) loadEvents(ctx context.Context, query firestore.Query,
 			return errors.Wrap(err, "error getting next document")
 		}
 
-		data := make(map[string]any)
-		if err := doc.DataTo(&data); err != nil {
-			return errors.Wrap(err, "error reading document data")
-		}
-
-		event, err := domain.NewEventFromRaw(data[eventFieldRaw].([]byte))
+		event, err := e.readEvent(doc)
 		if err != nil {
-			return errors.Wrap(err, "error creating the event")
+			return errors.Wrap(err, "error reading the event")
 		}
 
 		events[event.Id().Hex()] = event
 	}
 
 	return nil
+}
+
+func (e *EventRepository) readEvent(doc *firestore.DocumentSnapshot) (domain.Event, error) {
+	data := make(map[string]any)
+	if err := doc.DataTo(&data); err != nil {
+		return domain.Event{}, errors.Wrap(err, "error reading document data")
+	}
+
+	event, err := domain.NewEventFromRaw(data[eventFieldRaw].([]byte))
+	if err != nil {
+		return domain.Event{}, errors.Wrap(err, "error creating the event")
+	}
+
+	return event, nil
 }
 
 func sendErr(ctx context.Context, ch chan<- app.EventOrError, err error) {

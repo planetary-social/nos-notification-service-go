@@ -4,6 +4,7 @@ import (
 	"context"
 
 	googlefirestore "cloud.google.com/go/firestore"
+	watermillfirestore "github.com/ThreeDotsLabs/watermill-firestore/pkg/firestore"
 	"github.com/boreq/errors"
 	"github.com/google/wire"
 	"github.com/planetary-social/go-notification-service/internal/logging"
@@ -12,6 +13,7 @@ import (
 	"github.com/planetary-social/go-notification-service/service/adapters/prometheus"
 	"github.com/planetary-social/go-notification-service/service/app"
 	"github.com/planetary-social/go-notification-service/service/config"
+	"github.com/planetary-social/go-notification-service/service/ports/firestorepubsub"
 )
 
 var firestoreAdaptersSet = wire.NewSet(
@@ -21,11 +23,16 @@ var firestoreAdaptersSet = wire.NewSet(
 	wire.Bind(new(app.TransactionProvider), new(*firestore.TransactionProvider)),
 
 	newAdaptersFactoryFn,
+
+	firestore.NewWatermillSubscriber,
+	wire.Bind(new(firestorepubsub.FirestoreSubscriber), new(*watermillfirestore.Subscriber)),
+
+	wire.Struct(new(buildTransactionFirestoreAdaptersDependencies), "*"),
 )
 
-func newAdaptersFactoryFn() firestore.AdaptersFactoryFn {
+func newAdaptersFactoryFn(deps buildTransactionFirestoreAdaptersDependencies) firestore.AdaptersFactoryFn {
 	return func(client *googlefirestore.Client, tx *googlefirestore.Transaction) (app.Adapters, error) {
-		return buildTransactionFirestoreAdapters(client, tx)
+		return buildTransactionFirestoreAdapters(client, tx, deps)
 	}
 }
 
@@ -43,6 +50,11 @@ var firestoreTxAdaptersSet = wire.NewSet(
 	wire.Bind(new(app.PublicKeyRepository), new(*firestore.PublicKeyRepository)),
 
 	firestore.NewTagRepository,
+	wire.Bind(new(app.TagRepository), new(*firestore.TagRepository)),
+
+	firestore.NewWatermillPublisher,
+	firestore.NewPublisher,
+	wire.Bind(new(app.Publisher), new(*firestore.Publisher)),
 )
 
 var adaptersSet = wire.NewSet(
