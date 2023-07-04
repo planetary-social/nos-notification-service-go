@@ -12,12 +12,14 @@ import (
 const (
 	labelHandlerName          = "handlerName"
 	labelRelayDownloaderState = "state"
+	labelTopic                = "topic"
 )
 
 type Prometheus struct {
 	applicationHandlerCallsCounter          *prometheus.CounterVec
 	applicationHandlerCallDurationHistogram *prometheus.HistogramVec
 	relayDownloaderStateGauge               *prometheus.GaugeVec
+	subscriptionQueueLengthGauge            *prometheus.GaugeVec
 
 	logger logging.Logger
 }
@@ -45,6 +47,13 @@ func NewPrometheus(logger logging.Logger) *Prometheus {
 			},
 			[]string{labelRelayDownloaderState},
 		),
+		subscriptionQueueLengthGauge: promauto.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "subscription_queue_length",
+				Help: "Number of events in the subscription queue.",
+			},
+			[]string{labelTopic},
+		),
 
 		logger: logger,
 	}
@@ -56,6 +65,10 @@ func (p *Prometheus) TrackApplicationCall(handlerName string) app.ApplicationCal
 
 func (p *Prometheus) MeasureRelayDownloadersState(n int, state app.RelayDownloaderState) {
 	p.relayDownloaderStateGauge.With(prometheus.Labels{labelRelayDownloaderState: state.String()}).Set(float64(n))
+}
+
+func (p *Prometheus) ReportSubscriptionQueueLength(topic string, n int) {
+	p.subscriptionQueueLengthGauge.With(prometheus.Labels{labelTopic: topic}).Set(float64(n))
 }
 
 type ApplicationCall struct {

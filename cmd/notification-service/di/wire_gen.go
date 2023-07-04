@@ -79,7 +79,7 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 		return Service{}, nil, err
 	}
 	processSavedEventHandler := app.NewProcessSavedEventHandler(transactionProvider, generator, apnsAPNS, loggingLogger, prometheusPrometheus)
-	eventSavedSubscriber := firestorepubsub.NewEventSavedSubscriber(subscriber, processSavedEventHandler, loggingLogger)
+	eventSavedSubscriber := firestorepubsub.NewEventSavedSubscriber(subscriber, processSavedEventHandler, prometheusPrometheus, loggingLogger)
 	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber, eventSavedSubscriber)
 	return service, func() {
 		cleanup()
@@ -138,7 +138,7 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 		return Service{}, nil, err
 	}
 	processSavedEventHandler := app.NewProcessSavedEventHandler(transactionProvider, generator, apnsMock, loggingLogger, prometheusPrometheus)
-	eventSavedSubscriber := firestorepubsub.NewEventSavedSubscriber(subscriber, processSavedEventHandler, loggingLogger)
+	eventSavedSubscriber := firestorepubsub.NewEventSavedSubscriber(subscriber, processSavedEventHandler, prometheusPrometheus, loggingLogger)
 	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber, eventSavedSubscriber)
 	return service, func() {
 		cleanup()

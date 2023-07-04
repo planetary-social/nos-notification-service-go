@@ -63,6 +63,7 @@ var adaptersSet = wire.NewSet(
 
 	prometheus.NewPrometheus,
 	wire.Bind(new(app.Metrics), new(*prometheus.Prometheus)),
+	wire.Bind(new(firestorepubsub.Metrics), new(*prometheus.Prometheus)),
 )
 
 var integrationAdaptersSet = wire.NewSet(
@@ -71,6 +72,7 @@ var integrationAdaptersSet = wire.NewSet(
 
 	prometheus.NewPrometheus,
 	wire.Bind(new(app.Metrics), new(*prometheus.Prometheus)),
+	wire.Bind(new(firestorepubsub.Metrics), new(*prometheus.Prometheus)),
 )
 
 func newFirestoreClient(ctx context.Context, config config.Config, logger logging.Logger) (*googlefirestore.Client, func(), error) {
