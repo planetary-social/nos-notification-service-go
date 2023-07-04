@@ -45,18 +45,21 @@ func (p *EventSavedSubscriber) Run(ctx context.Context) error {
 	}
 
 	for msg := range ch {
-		if err := p.handleMessage(ctx, msg); err != nil {
-			msg.Nack()
-			p.logger.Error().WithError(err).Message("error handling a message")
-			continue
-		}
-
-		msg.Ack()
+		go p.handleMessage(ctx, msg)
 	}
 	return nil
 }
 
-func (p *EventSavedSubscriber) handleMessage(ctx context.Context, msg *message.Message) error {
+func (p *EventSavedSubscriber) handleMessage(ctx context.Context, msg *message.Message) {
+	if err := p.runHandler(ctx, msg); err != nil {
+		p.logger.Error().WithError(err).Message("error handling a message")
+		msg.Nack()
+	} else {
+		msg.Ack()
+	}
+}
+
+func (p *EventSavedSubscriber) runHandler(ctx context.Context, msg *message.Message) error {
 	var payload firestore.EventSavedPayload
 	if err := json.Unmarshal(msg.Payload, &payload); err != nil {
 		return errors.Wrap(err, "error unmarshaling event payload")
