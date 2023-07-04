@@ -15,6 +15,9 @@ const (
 	collectionTags             = "tags"
 	collectionTagsValues       = "tags"
 	collectionTagsValuesEvents = "events"
+
+	tagFieldName       = "name"
+	tagFieldFirstValue = "firstValue"
 )
 
 type TagRepository struct {
@@ -35,15 +38,22 @@ func NewTagRepository(
 func (e *TagRepository) Save(event domain.Event, tags []domain.EventTag) error {
 	for _, tag := range tags {
 		keyTag := encodeStringAsHex(tag.Name().String())
-		keyValue := encodeStringAsHex(tag.FirstValue())
 
 		tagDocPath := e.client.Collection(collectionTags).Doc(keyTag)
-		if err := e.tx.Set(tagDocPath, map[string]any{}, firestore.MergeAll); err != nil {
+		tagDocData := map[string]any{
+			tagFieldName: tag.Name().String(),
+		}
+		if err := e.tx.Set(tagDocPath, tagDocData, firestore.MergeAll); err != nil {
 			return errors.Wrap(err, "error updating the tag doc")
 		}
 
+		keyValue := encodeStringAsHex(tag.FirstValue())
+
 		tagValueDocPath := e.client.Collection(collectionTags).Doc(keyTag).Collection(collectionTagsValues).Doc(keyValue)
-		if err := e.tx.Set(tagValueDocPath, map[string]any{}, firestore.MergeAll); err != nil {
+		tagValueDocData := map[string]any{
+			tagFieldFirstValue: tag.FirstValue(),
+		}
+		if err := e.tx.Set(tagValueDocPath, tagValueDocData, firestore.MergeAll); err != nil {
 			return errors.Wrap(err, "error updating the value doc")
 		}
 
