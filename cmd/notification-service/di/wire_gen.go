@@ -41,7 +41,7 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	}
 	adaptersFactoryFn := newAdaptersFactoryFn(diBuildTransactionFirestoreAdaptersDependencies)
 	transactionProvider := firestore.NewTransactionProvider(client, adaptersFactoryFn)
-	prometheusPrometheus := prometheus.NewPrometheus()
+	prometheusPrometheus := prometheus.NewPrometheus(loggingLogger)
 	saveReceivedEventHandler := app.NewSaveReceivedEventHandler(transactionProvider, loggingLogger, prometheusPrometheus)
 	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider, loggingLogger, prometheusPrometheus)
 	commands := app.Commands{
@@ -100,7 +100,7 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 	}
 	adaptersFactoryFn := newAdaptersFactoryFn(diBuildTransactionFirestoreAdaptersDependencies)
 	transactionProvider := firestore.NewTransactionProvider(client, adaptersFactoryFn)
-	prometheusPrometheus := prometheus.NewPrometheus()
+	prometheusPrometheus := prometheus.NewPrometheus(loggingLogger)
 	saveReceivedEventHandler := app.NewSaveReceivedEventHandler(transactionProvider, loggingLogger, prometheusPrometheus)
 	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider, loggingLogger, prometheusPrometheus)
 	commands := app.Commands{

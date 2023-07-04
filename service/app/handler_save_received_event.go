@@ -42,6 +42,7 @@ func (h *SaveReceivedEventHandler) Handle(ctx context.Context, cmd SaveReceivedE
 		WithField("relay", cmd.relay.String()).
 		WithField("event.id", cmd.event.Id().Hex()).
 		WithField("event.kind", cmd.event.Kind().Int()).
+		WithField("size", len(cmd.event.Raw())).
 		Message("saving received event")
 
 	if err := h.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
