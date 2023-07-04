@@ -73,6 +73,18 @@ Optional, can be set to `PRODUCTION` or `DEVELOPMENT`. Defaults to `PRODUCTION`.
 Optional, this is used by the Firestore libraries and can be useful for testing
 but you shouldn't ever have to set this in production.
 
+## Metrics
+
+See configuration for the address of our metrics endpoint. Many out-of-the-box
+Go-related metrics are available. We also have custom metrics:
+
+- `application_handler_calls_total`
+- `application_handler_calls_duration`
+- `relay_downloader_count`
+- `subscription_queue_length`
+-
+See `service/adapters/prometheus`.
+
 ## Contributing
 
 ### Go version
