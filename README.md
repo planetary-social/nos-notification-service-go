@@ -191,9 +191,44 @@ used in the following cases:
 
 ### Architecture
 
-...
+The notification service receives custom Nostr events which contain user's relays and APNs tokens. The notification service then uses those lists of relays associated with user's public key to get all events in which the user was tagged and to generate APNs notifications for them. When Nos receives such a notification it grabs the events from the notification service by querying it like a normal relay.
 
+```mermaid
+flowchart LR
+    Nos --> |custom registration event| Service --> |notification| APNs --> |notification| Nos --> |request for events| Service
+```
 
+The best entry point to start reading the code is probably `service/ports/http`. There you can investigate how registration events are processed and saved in the database. You can also investigate how events are returned in response to `REQ` requests.
+
+To see how events are downloaded check out `Downloader` as well as `RelayDownloader`. One tricky thing there is that we use pubsub to work around the (reasonable as it forces you to do things correctly) Firestore transaction size limit. See the chart below to understand the flow.
+
+```mermaid
+flowchart TB
+    relay-downloader["Relay downloader"]
+    in-memory-pubsub["In-memory pubsub"]
+    save-received-event-handler["Save received event handler"]
+    firestore["Firestore"]
+    firestore-in-process-block["Firestore"]
+    apns["APNs"]
+    process-saved-event-handler["Process saved event handler"]
+
+    subgraph Receive nostr event
+    relay-downloader --> |received nostr event| in-memory-pubsub
+    end
+
+    subgraph Save nostr event
+    in-memory-pubsub --> |received nostr event| save-received-event-handler
+    save-received-event-handler --> |received nostr event| firestore
+    save-received-event-handler --> |`nostr event saved` pubsub event| firestore
+    end
+
+    subgraph Process nostr event
+    firestore --> |`nostr event saved` pubsub event| process-saved-event-handler
+    process-saved-event-handler --> |many nostr event tags| firestore-in-process-block
+    process-saved-event-handler --> |many notifications| apns
+    process-saved-event-handler --> |many notifications| firestore-in-process-block
+    end
+```
 
 [get-apns-cert]: https://developer.apple.com/documentation/usernotifications/setting_up_a_remote_notification_server/establishing_a_certificate-based_connection_to_apns#2947597
 [get-firebase-credentials]: https://firebase.google.com/docs/admin/setup#initialize_the_sdk_in_non-google_environments
