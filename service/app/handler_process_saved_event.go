@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	tagBatchSize       = 100
+	tagBatchSize       = 150
 	apnsTokenBatchSize = 500
 )
 

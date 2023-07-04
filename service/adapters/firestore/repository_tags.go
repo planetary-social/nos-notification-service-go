@@ -3,6 +3,7 @@ package firestore
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"time"
 
 	"cloud.google.com/go/firestore"
@@ -36,38 +37,48 @@ func NewTagRepository(
 }
 
 func (e *TagRepository) Save(event domain.Event, tags []domain.EventTag) error {
+	groupedtags := make(map[domain.EventTagName][]domain.EventTag)
 	for _, tag := range tags {
-		keyTag := encodeStringAsHex(tag.Name().String())
+		groupedtags[tag.Name()] = append(groupedtags[tag.Name()], tag)
+	}
+
+	fmt.Println("tags", len(tags))
+
+	for name, tags := range groupedtags {
+		keyTag := encodeStringAsHex(name.String())
 
 		tagDocPath := e.client.Collection(collectionTags).Doc(keyTag)
 		tagDocData := map[string]any{
-			tagFieldName: tag.Name().String(),
+			tagFieldName: name.String(),
 		}
 		if err := e.tx.Set(tagDocPath, tagDocData, firestore.MergeAll); err != nil {
 			return errors.Wrap(err, "error updating the tag doc")
 		}
 
-		keyValue := encodeStringAsHex(tag.FirstValue())
+		for _, tag := range tags {
+			keyValue := encodeStringAsHex(tag.FirstValue())
 
-		tagValueDocPath := e.client.Collection(collectionTags).Doc(keyTag).Collection(collectionTagsValues).Doc(keyValue)
-		tagValueDocData := map[string]any{
-			tagFieldFirstValue: tag.FirstValue(),
-		}
-		if err := e.tx.Set(tagValueDocPath, tagValueDocData, firestore.MergeAll); err != nil {
-			return errors.Wrap(err, "error updating the value doc")
+			tagValueDocPath := e.client.Collection(collectionTags).Doc(keyTag).Collection(collectionTagsValues).Doc(keyValue)
+			tagValueDocData := map[string]any{
+				tagFieldFirstValue: tag.FirstValue(),
+			}
+			if err := e.tx.Set(tagValueDocPath, tagValueDocData, firestore.MergeAll); err != nil {
+				return errors.Wrap(err, "error updating the value doc")
+			}
+
+			tagValueEventDocPath := e.client.Collection(collectionTags).Doc(keyTag).Collection(collectionTagsValues).Doc(keyValue).Collection(collectionTagsValuesEvents).Doc(event.Id().Hex())
+			tagValueEventDocData := map[string]any{
+				eventFieldId:        event.Id().Hex(),
+				eventFieldPublicKey: event.PubKey().Hex(),
+				eventFieldCreatedAt: event.CreatedAt(),
+				eventFieldKind:      event.Kind().Int(),
+				eventFieldRaw:       event.Raw(),
+			}
+			if err := e.tx.Set(tagValueEventDocPath, tagValueEventDocData, firestore.MergeAll); err != nil {
+				return errors.Wrap(err, "error updating the event doc")
+			}
 		}
 
-		tagValueEventDocPath := e.client.Collection(collectionTags).Doc(keyTag).Collection(collectionTagsValues).Doc(keyValue).Collection(collectionTagsValuesEvents).Doc(event.Id().Hex())
-		tagValueEventDocData := map[string]any{
-			eventFieldId:        event.Id().Hex(),
-			eventFieldPublicKey: event.PubKey().Hex(),
-			eventFieldCreatedAt: event.CreatedAt(),
-			eventFieldKind:      event.Kind().Int(),
-			eventFieldRaw:       event.Raw(),
-		}
-		if err := e.tx.Set(tagValueEventDocPath, tagValueEventDocData, firestore.MergeAll); err != nil {
-			return errors.Wrap(err, "error updating the event doc")
-		}
 	}
 	return nil
 }
