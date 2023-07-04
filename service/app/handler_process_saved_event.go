@@ -50,20 +50,20 @@ func NewProcessSavedEventHandler(
 func (h *ProcessSavedEventHandler) Handle(ctx context.Context, cmd ProcessSavedEvent) error {
 	defer h.metrics.TrackApplicationCall("processSavedEvent").End()
 
-	h.logger.Debug().
-		WithField("event.id", cmd.eventId.Hex()).
-		Message("processing saved event")
+	logger := h.logger.WithField("event.id", cmd.eventId.Hex())
+
+	logger.Debug().Message("processing saved event")
 
 	event, err := h.loadEvent(ctx, cmd)
 	if err != nil {
 		return errors.Wrap(err, "error loading event")
 	}
 
-	if err := h.saveTags(ctx, event); err != nil {
+	if err := h.saveTags(ctx, event, logger); err != nil {
 		return errors.Wrap(err, "error saving tags")
 	}
 
-	if err := h.generateSendAndSaveNotifications(ctx, event); err != nil {
+	if err := h.generateSendAndSaveNotifications(ctx, event, logger); err != nil {
 		return errors.Wrap(err, "error saving tags")
 	}
 
@@ -87,10 +87,14 @@ func (h *ProcessSavedEventHandler) loadEvent(ctx context.Context, cmd ProcessSav
 	return event, nil
 }
 
-func (h *ProcessSavedEventHandler) saveTags(ctx context.Context, event domain.Event) error {
+func (h *ProcessSavedEventHandler) saveTags(ctx context.Context, event domain.Event, logger logging.Logger) error {
 	if len(event.Tags()) == 0 {
 		return nil
 	}
+
+	logger.Debug().
+		WithField("numberOfTags", len(event.Tags())).
+		Message("saving tags")
 
 	for _, batch := range internal.BatchesFromSlice(event.Tags(), tagBatchSize) {
 		if err := h.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
@@ -106,7 +110,7 @@ func (h *ProcessSavedEventHandler) saveTags(ctx context.Context, event domain.Ev
 	return nil
 }
 
-func (h *ProcessSavedEventHandler) generateSendAndSaveNotifications(ctx context.Context, event domain.Event) error {
+func (h *ProcessSavedEventHandler) generateSendAndSaveNotifications(ctx context.Context, event domain.Event, logger logging.Logger) error {
 	// todo this shouldn't send multiple notifications if the event is retried
 
 	mentions, err := domain.GetMentionsFromTags(event.Tags())
@@ -123,7 +127,9 @@ func (h *ProcessSavedEventHandler) generateSendAndSaveNotifications(ctx context.
 			if err != nil {
 				return errors.Wrap(err, "error getting the token")
 			}
-			mentionToTokens[mention] = append(mentionToTokens[mention], tmp...)
+			if len(tmp) > 0 {
+				mentionToTokens[mention] = append(mentionToTokens[mention], tmp...)
+			}
 		}
 
 		return nil
@@ -132,6 +138,11 @@ func (h *ProcessSavedEventHandler) generateSendAndSaveNotifications(ctx context.
 	}
 
 	for mention, tokens := range mentionToTokens {
+		logger.Debug().
+			WithField("mention", mention.Hex()).
+			WithField("numberOfTokens", len(tokens)).
+			Message("sending notifications")
+
 		for _, batch := range internal.BatchesFromSlice(tokens, apnsTokenBatchSize) {
 			if err := h.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
 				for _, token := range batch {
