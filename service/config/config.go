@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/boreq/errors"
+	"github.com/planetary-social/go-notification-service/internal/logging"
 )
 
 type Environment struct {
@@ -27,6 +28,7 @@ type Config struct {
 	apnsCertificatePassword string
 
 	environment Environment
+	logLevel    logging.Level
 }
 
 func NewConfig(
@@ -38,6 +40,7 @@ func NewConfig(
 	apnsCertificatePath string,
 	apnsCertificatePassword string,
 	environment Environment,
+	logLevel logging.Level,
 ) (Config, error) {
 	c := Config{
 		nostrListenAddress:       nostrListenAddress,
@@ -48,6 +51,7 @@ func NewConfig(
 		apnsCertificatePath:      apnsCertificatePath,
 		apnsCertificatePassword:  apnsCertificatePassword,
 		environment:              environment,
+		logLevel:                 logLevel,
 	}
 
 	c.setDefaults()
@@ -88,6 +92,10 @@ func (c *Config) APNSCertificatePassword() string {
 
 func (c *Config) Environment() Environment {
 	return c.environment
+}
+
+func (c *Config) LogLevel() logging.Level {
+	return c.logLevel
 }
 
 func (c *Config) setDefaults() {
