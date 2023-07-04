@@ -28,22 +28,23 @@ import (
 // Injectors from wire.go:
 
 func BuildService(contextContext context.Context, configConfig config.Config) (Service, func(), error) {
-	logger := newLogrus()
-	logrusLoggingSystem := logging.NewLogrusLoggingSystem(logger)
-	loggingLogger := newSystemLogger(logrusLoggingSystem)
-	client, cleanup, err := newFirestoreClient(contextContext, configConfig, loggingLogger)
+	logger, err := newLogger(configConfig)
 	if err != nil {
 		return Service{}, nil, err
 	}
-	watermillAdapter := logging.NewWatermillAdapter(loggingLogger)
+	client, cleanup, err := newFirestoreClient(contextContext, configConfig, logger)
+	if err != nil {
+		return Service{}, nil, err
+	}
+	watermillAdapter := logging.NewWatermillAdapter(logger)
 	diBuildTransactionFirestoreAdaptersDependencies := buildTransactionFirestoreAdaptersDependencies{
 		LoggerAdapter: watermillAdapter,
 	}
 	adaptersFactoryFn := newAdaptersFactoryFn(diBuildTransactionFirestoreAdaptersDependencies)
 	transactionProvider := firestore.NewTransactionProvider(client, adaptersFactoryFn)
-	prometheusPrometheus := prometheus.NewPrometheus(loggingLogger)
-	saveReceivedEventHandler := app.NewSaveReceivedEventHandler(transactionProvider, loggingLogger, prometheusPrometheus)
-	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider, loggingLogger, prometheusPrometheus)
+	prometheusPrometheus := prometheus.NewPrometheus(logger)
+	saveReceivedEventHandler := app.NewSaveReceivedEventHandler(transactionProvider, logger, prometheusPrometheus)
+	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider, logger, prometheusPrometheus)
 	commands := app.Commands{
 		SaveReceivedEvent: saveReceivedEventHandler,
 		SaveRegistration:  saveRegistrationHandler,
@@ -63,23 +64,23 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 		Commands: commands,
 		Queries:  queries,
 	}
-	server := http.NewServer(configConfig, application, loggingLogger)
-	metricsServer := http.NewMetricsServer(configConfig, loggingLogger)
-	downloader := app.NewDownloader(transactionProvider, receivedEventPubSub, loggingLogger, prometheusPrometheus)
-	receivedEventSubscriber := memorypubsub.NewReceivedEventSubscriber(receivedEventPubSub, saveReceivedEventHandler, loggingLogger)
+	server := http.NewServer(configConfig, application, logger)
+	metricsServer := http.NewMetricsServer(configConfig, logger)
+	downloader := app.NewDownloader(transactionProvider, receivedEventPubSub, logger, prometheusPrometheus)
+	receivedEventSubscriber := memorypubsub.NewReceivedEventSubscriber(receivedEventPubSub, saveReceivedEventHandler, logger)
 	subscriber, err := firestore.NewWatermillSubscriber(client, watermillAdapter)
 	if err != nil {
 		cleanup()
 		return Service{}, nil, err
 	}
-	generator := notifications.NewGenerator(loggingLogger)
-	apnsAPNS, err := apns.NewAPNS(configConfig, loggingLogger)
+	generator := notifications.NewGenerator(logger)
+	apnsAPNS, err := apns.NewAPNS(configConfig, logger)
 	if err != nil {
 		cleanup()
 		return Service{}, nil, err
 	}
-	processSavedEventHandler := app.NewProcessSavedEventHandler(transactionProvider, generator, apnsAPNS, loggingLogger, prometheusPrometheus)
-	eventSavedSubscriber := firestorepubsub.NewEventSavedSubscriber(subscriber, processSavedEventHandler, prometheusPrometheus, loggingLogger)
+	processSavedEventHandler := app.NewProcessSavedEventHandler(transactionProvider, generator, apnsAPNS, logger, prometheusPrometheus)
+	eventSavedSubscriber := firestorepubsub.NewEventSavedSubscriber(subscriber, processSavedEventHandler, prometheusPrometheus, logger)
 	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber, eventSavedSubscriber)
 	return service, func() {
 		cleanup()
@@ -87,22 +88,23 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 }
 
 func BuildIntegrationService(contextContext context.Context, configConfig config.Config) (Service, func(), error) {
-	logger := newLogrus()
-	logrusLoggingSystem := logging.NewLogrusLoggingSystem(logger)
-	loggingLogger := newSystemLogger(logrusLoggingSystem)
-	client, cleanup, err := newFirestoreClient(contextContext, configConfig, loggingLogger)
+	logger, err := newLogger(configConfig)
 	if err != nil {
 		return Service{}, nil, err
 	}
-	watermillAdapter := logging.NewWatermillAdapter(loggingLogger)
+	client, cleanup, err := newFirestoreClient(contextContext, configConfig, logger)
+	if err != nil {
+		return Service{}, nil, err
+	}
+	watermillAdapter := logging.NewWatermillAdapter(logger)
 	diBuildTransactionFirestoreAdaptersDependencies := buildTransactionFirestoreAdaptersDependencies{
 		LoggerAdapter: watermillAdapter,
 	}
 	adaptersFactoryFn := newAdaptersFactoryFn(diBuildTransactionFirestoreAdaptersDependencies)
 	transactionProvider := firestore.NewTransactionProvider(client, adaptersFactoryFn)
-	prometheusPrometheus := prometheus.NewPrometheus(loggingLogger)
-	saveReceivedEventHandler := app.NewSaveReceivedEventHandler(transactionProvider, loggingLogger, prometheusPrometheus)
-	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider, loggingLogger, prometheusPrometheus)
+	prometheusPrometheus := prometheus.NewPrometheus(logger)
+	saveReceivedEventHandler := app.NewSaveReceivedEventHandler(transactionProvider, logger, prometheusPrometheus)
+	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider, logger, prometheusPrometheus)
 	commands := app.Commands{
 		SaveReceivedEvent: saveReceivedEventHandler,
 		SaveRegistration:  saveRegistrationHandler,
@@ -122,23 +124,23 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 		Commands: commands,
 		Queries:  queries,
 	}
-	server := http.NewServer(configConfig, application, loggingLogger)
-	metricsServer := http.NewMetricsServer(configConfig, loggingLogger)
-	downloader := app.NewDownloader(transactionProvider, receivedEventPubSub, loggingLogger, prometheusPrometheus)
-	receivedEventSubscriber := memorypubsub.NewReceivedEventSubscriber(receivedEventPubSub, saveReceivedEventHandler, loggingLogger)
+	server := http.NewServer(configConfig, application, logger)
+	metricsServer := http.NewMetricsServer(configConfig, logger)
+	downloader := app.NewDownloader(transactionProvider, receivedEventPubSub, logger, prometheusPrometheus)
+	receivedEventSubscriber := memorypubsub.NewReceivedEventSubscriber(receivedEventPubSub, saveReceivedEventHandler, logger)
 	subscriber, err := firestore.NewWatermillSubscriber(client, watermillAdapter)
 	if err != nil {
 		cleanup()
 		return Service{}, nil, err
 	}
-	generator := notifications.NewGenerator(loggingLogger)
-	apnsMock, err := apns.NewAPNSMock(configConfig, loggingLogger)
+	generator := notifications.NewGenerator(logger)
+	apnsMock, err := apns.NewAPNSMock(configConfig, logger)
 	if err != nil {
 		cleanup()
 		return Service{}, nil, err
 	}
-	processSavedEventHandler := app.NewProcessSavedEventHandler(transactionProvider, generator, apnsMock, loggingLogger, prometheusPrometheus)
-	eventSavedSubscriber := firestorepubsub.NewEventSavedSubscriber(subscriber, processSavedEventHandler, prometheusPrometheus, loggingLogger)
+	processSavedEventHandler := app.NewProcessSavedEventHandler(transactionProvider, generator, apnsMock, logger, prometheusPrometheus)
+	eventSavedSubscriber := firestorepubsub.NewEventSavedSubscriber(subscriber, processSavedEventHandler, prometheusPrometheus, logger)
 	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber, eventSavedSubscriber)
 	return service, func() {
 		cleanup()

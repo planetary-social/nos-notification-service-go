@@ -67,6 +67,11 @@ Execution environment. Affects:
 
 Optional, can be set to `PRODUCTION` or `DEVELOPMENT`. Defaults to `PRODUCTION`.
 
+### `NOTIFICATIONS_LOG_LEVEL`
+
+Log level.
+
+Optional, can be set to `TRACE`, `DEBUG`, `ERROR` or `DISABLED`. Defaults to `DEBUG`.
 
 ### `FIRESTORE_EMULATOR_HOST`
 
