@@ -2,6 +2,7 @@ package firestore
 
 import (
 	"context"
+	"time"
 
 	"cloud.google.com/go/firestore"
 	"github.com/boreq/errors"
@@ -86,9 +87,9 @@ func (e *EventRepository) SaveNotificationForEvent(notification notifications.No
 		Doc(notification.UUID().String())
 
 	notificationDocData := map[string]any{
-		"uuid":    notification.UUID().String(),
-		"token":   notification.APNSToken().Hex(),
-		"payload": notification.Payload(),
+		"uuid":    ensureType[string](notification.UUID().String()),
+		"token":   ensureType[string](notification.APNSToken().Hex()),
+		"payload": ensureType[[]byte](notification.Payload()),
 	}
 
 	if err := e.tx.Set(notificationDocPath, notificationDocData, firestore.MergeAll); err != nil {
@@ -101,11 +102,11 @@ func (e *EventRepository) SaveNotificationForEvent(notification notifications.No
 func (e *EventRepository) saveUnderEvents(event domain.Event) error {
 	eventDocPath := e.client.Collection(collectionEvents).Doc(event.Id().Hex())
 	eventDocData := map[string]any{
-		eventFieldId:        event.Id().Hex(),
-		eventFieldPublicKey: event.PubKey().Hex(),
-		eventFieldCreatedAt: event.CreatedAt(),
-		eventFieldKind:      event.Kind().Int(),
-		eventFieldRaw:       event.Raw(),
+		eventFieldId:        ensureType[string](event.Id().Hex()),
+		eventFieldPublicKey: ensureType[string](event.PubKey().Hex()),
+		eventFieldCreatedAt: ensureType[time.Time](event.CreatedAt()),
+		eventFieldKind:      ensureType[int](event.Kind().Int()),
+		eventFieldRaw:       ensureType[[]byte](event.Raw()),
 	}
 	if err := e.tx.Set(eventDocPath, eventDocData, firestore.MergeAll); err != nil {
 		return errors.Wrap(err, "error updating the event doc")

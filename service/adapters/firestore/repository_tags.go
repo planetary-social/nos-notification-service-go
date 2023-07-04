@@ -3,7 +3,6 @@ package firestore
 import (
 	"context"
 	"encoding/hex"
-	"fmt"
 	"time"
 
 	"cloud.google.com/go/firestore"
@@ -42,14 +41,12 @@ func (e *TagRepository) Save(event domain.Event, tags []domain.EventTag) error {
 		groupedtags[tag.Name()] = append(groupedtags[tag.Name()], tag)
 	}
 
-	fmt.Println("tags", len(tags))
-
 	for name, tags := range groupedtags {
 		keyTag := encodeStringAsHex(name.String())
 
 		tagDocPath := e.client.Collection(collectionTags).Doc(keyTag)
 		tagDocData := map[string]any{
-			tagFieldName: name.String(),
+			tagFieldName: ensureType[string](name.String()),
 		}
 		if err := e.tx.Set(tagDocPath, tagDocData, firestore.MergeAll); err != nil {
 			return errors.Wrap(err, "error updating the tag doc")
@@ -60,7 +57,7 @@ func (e *TagRepository) Save(event domain.Event, tags []domain.EventTag) error {
 
 			tagValueDocPath := e.client.Collection(collectionTags).Doc(keyTag).Collection(collectionTagsValues).Doc(keyValue)
 			tagValueDocData := map[string]any{
-				tagFieldFirstValue: tag.FirstValue(),
+				tagFieldFirstValue: ensureType[string](tag.FirstValue()),
 			}
 			if err := e.tx.Set(tagValueDocPath, tagValueDocData, firestore.MergeAll); err != nil {
 				return errors.Wrap(err, "error updating the value doc")
@@ -68,11 +65,11 @@ func (e *TagRepository) Save(event domain.Event, tags []domain.EventTag) error {
 
 			tagValueEventDocPath := e.client.Collection(collectionTags).Doc(keyTag).Collection(collectionTagsValues).Doc(keyValue).Collection(collectionTagsValuesEvents).Doc(event.Id().Hex())
 			tagValueEventDocData := map[string]any{
-				eventFieldId:        event.Id().Hex(),
-				eventFieldPublicKey: event.PubKey().Hex(),
-				eventFieldCreatedAt: event.CreatedAt(),
-				eventFieldKind:      event.Kind().Int(),
-				eventFieldRaw:       event.Raw(),
+				eventFieldId:        ensureType[string](event.Id().Hex()),
+				eventFieldPublicKey: ensureType[string](event.PubKey().Hex()),
+				eventFieldCreatedAt: ensureType[time.Time](event.CreatedAt()),
+				eventFieldKind:      ensureType[int](event.Kind().Int()),
+				eventFieldRaw:       ensureType[[]byte](event.Raw()),
 			}
 			if err := e.tx.Set(tagValueEventDocPath, tagValueEventDocData, firestore.MergeAll); err != nil {
 				return errors.Wrap(err, "error updating the event doc")

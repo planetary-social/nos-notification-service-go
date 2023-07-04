@@ -52,3 +52,11 @@ func (t *TransactionProvider) Transact(ctx context.Context, f func(context.Conte
 
 	return nil
 }
+
+// Firestore doesn't return errors if you give it data it doesn't support, it
+// just fails quietly (in reality I think that it tries to look at struct's
+// fields but all fields are private and therefore no data is saved). Absurd
+// design.
+func ensureType[T any](v T) T {
+	return v
+}

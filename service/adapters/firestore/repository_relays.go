@@ -28,7 +28,7 @@ func (r *RelayRepository) Save(registration domain.Registration) error {
 	for _, relayAddress := range registration.Relays() {
 		relayDocPath := r.client.Collection(collectionRelays).Doc(relayAddressAsKey(relayAddress))
 		relayDocData := map[string]any{
-			"address": relayAddress.String(),
+			"address": ensureType[string](relayAddress.String()),
 		}
 		if err := r.tx.Set(relayDocPath, relayDocData, firestore.MergeAll); err != nil {
 			return errors.Wrap(err, "error creating the relay doc")
@@ -36,7 +36,7 @@ func (r *RelayRepository) Save(registration domain.Registration) error {
 
 		pubKeyDocPath := relayDocPath.Collection(collectionRelaysPublicKeys).Doc(registration.PublicKey().Hex())
 		pubKeyDocData := map[string]any{
-			"publicKey": registration.PublicKey().Hex(),
+			"publicKey": ensureType[string](registration.PublicKey().Hex()),
 		}
 		if err := r.tx.Set(pubKeyDocPath, pubKeyDocData, firestore.MergeAll); err != nil {
 			return errors.Wrap(err, "error creating the public key doc")
