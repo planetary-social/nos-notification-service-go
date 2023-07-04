@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"cloud.google.com/go/firestore"
 	"github.com/ThreeDotsLabs/watermill"
 	watermillfirestore "github.com/ThreeDotsLabs/watermill-firestore/pkg/firestore"
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -15,10 +16,17 @@ const PubsubTopicEventSaved = "event_saved"
 
 type Publisher struct {
 	publisher *watermillfirestore.Publisher
+	tx        *firestore.Transaction
 }
 
-func NewPublisher(publisher *watermillfirestore.Publisher) *Publisher {
-	return &Publisher{publisher: publisher}
+func NewPublisher(
+	publisher *watermillfirestore.Publisher,
+	tx *firestore.Transaction,
+) *Publisher {
+	return &Publisher{
+		publisher: publisher,
+		tx:        tx,
+	}
 }
 
 func (p Publisher) PublishEventSaved(ctx context.Context, id domain.EventId) error {
@@ -30,7 +38,7 @@ func (p Publisher) PublishEventSaved(ctx context.Context, id domain.EventId) err
 	}
 
 	msg := message.NewMessage(watermill.NewULID(), payloadJSON)
-	return p.publisher.Publish(PubsubTopicEventSaved, msg)
+	return p.publisher.PublishInTransaction(PubsubTopicEventSaved, p.tx, msg)
 }
 
 type EventSavedPayload struct {
