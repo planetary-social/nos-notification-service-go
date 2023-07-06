@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/boreq/errors"
 	"github.com/planetary-social/go-notification-service/internal/logging"
@@ -38,11 +39,16 @@ func NewSaveReceivedEventHandler(
 func (h *SaveReceivedEventHandler) Handle(ctx context.Context, cmd SaveReceivedEvent) error {
 	defer h.metrics.TrackApplicationCall("saveReceivedEvent").End()
 
+	if !domain.ShouldDownloadEventKind(cmd.event.Kind()) {
+		return fmt.Errorf("event '%s' shouldn't have been downloaded", cmd.event.String())
+	}
+
 	h.logger.Debug().
 		WithField("relay", cmd.relay.String()).
 		WithField("event.id", cmd.event.Id().Hex()).
 		WithField("event.kind", cmd.event.Kind().Int()).
 		WithField("size", len(cmd.event.Raw())).
+		WithField("number_of_tags", len(cmd.event.Tags())).
 		Message("saving received event")
 
 	if err := h.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
