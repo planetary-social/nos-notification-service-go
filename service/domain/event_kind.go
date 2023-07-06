@@ -1,6 +1,19 @@
 package domain
 
-import "github.com/boreq/errors"
+import (
+	"github.com/boreq/errors"
+	"github.com/planetary-social/go-notification-service/internal"
+)
+
+var eventKindsToDownload = internal.NewSet([]EventKind{EventKindNote})
+
+func EventKindsToDownload() []EventKind {
+	return eventKindsToDownload.List()
+}
+
+func ShouldDownloadEventKind(eventKind EventKind) bool {
+	return eventKindsToDownload.Contains(eventKind)
+}
 
 var (
 	EventKindNote                   = MustNewEventKind(1)

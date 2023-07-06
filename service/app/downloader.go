@@ -25,8 +25,6 @@ const (
 	storeMetricsEvery = 10 * time.Second
 )
 
-var eventKindsToDownload = []int{domain.EventKindNote.Int()}
-
 type ReceivedEventPublisher interface {
 	Publish(relay domain.RelayAddress, event domain.Event)
 }
@@ -362,18 +360,7 @@ func (d *RelayDownloader) updateSubs(
 				WithField("publicKey", publicKey).
 				Message("opening subscription")
 
-			t := nostr.Timestamp(time.Now().Add(-howFarIntoThePastToLook).Unix())
-
-			envelope := nostr.ReqEnvelope{
-				SubscriptionID: publicKey.Hex(),
-				Filters: nostr.Filters{nostr.Filter{
-					Kinds: eventKindsToDownload,
-					Tags: map[string][]string{
-						"p": {publicKey.Hex()},
-					},
-					Since: &t,
-				}},
-			}
+			envelope := d.createRequest(publicKey)
 
 			envelopeJSON, err := envelope.MarshalJSON()
 			if err != nil {
@@ -389,6 +376,28 @@ func (d *RelayDownloader) updateSubs(
 	}
 
 	return nil
+}
+
+func (d *RelayDownloader) createRequest(publicKey domain.PublicKey) nostr.ReqEnvelope {
+	t := nostr.Timestamp(time.Now().Add(-howFarIntoThePastToLook).Unix())
+
+	var eventKindsToDownload []int
+	for _, eventKind := range domain.EventKindsToDownload() {
+		eventKindsToDownload = append(eventKindsToDownload, eventKind.Int())
+	}
+
+	envelope := nostr.ReqEnvelope{
+		SubscriptionID: publicKey.Hex(),
+		Filters: nostr.Filters{nostr.Filter{
+			Kinds: eventKindsToDownload,
+			Tags: map[string][]string{
+				"p": {publicKey.Hex()},
+			},
+			Since: &t,
+		}},
+	}
+
+	return envelope
 }
 
 func (d *RelayDownloader) getPublicKeys(ctx context.Context) (*internal.Set[domain.PublicKey], error) {
