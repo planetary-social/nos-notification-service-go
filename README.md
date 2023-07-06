@@ -87,7 +87,7 @@ Go-related metrics are available. We also have custom metrics:
 - `application_handler_calls_duration`
 - `relay_downloader_count`
 - `subscription_queue_length`
--
+
 See `service/adapters/prometheus`.
 
 ## Contributing
