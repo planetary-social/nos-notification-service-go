@@ -25,6 +25,8 @@ const (
 	storeMetricsEvery = 10 * time.Second
 )
 
+var eventKindsToDownload = []int{domain.EventKindNote.Int()}
+
 type ReceivedEventPublisher interface {
 	Publish(relay domain.RelayAddress, event domain.Event)
 }
@@ -365,6 +367,7 @@ func (d *RelayDownloader) updateSubs(
 			envelope := nostr.ReqEnvelope{
 				SubscriptionID: publicKey.Hex(),
 				Filters: nostr.Filters{nostr.Filter{
+					Kinds: eventKindsToDownload,
 					Tags: map[string][]string{
 						"p": {publicKey.Hex()},
 					},
