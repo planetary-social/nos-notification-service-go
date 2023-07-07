@@ -119,5 +119,5 @@ type Metrics interface {
 }
 
 type ApplicationCall interface {
-	End()
+	End(err error)
 }

@@ -22,8 +22,8 @@ func NewGetPublicKeysHandler(
 	}
 }
 
-func (h *GetPublicKeysHandler) Handle(ctx context.Context, relay domain.RelayAddress) ([]domain.PublicKey, error) {
-	defer h.metrics.TrackApplicationCall("getPublicKeys").End()
+func (h *GetPublicKeysHandler) Handle(ctx context.Context, relay domain.RelayAddress) (keys []domain.PublicKey, err error) {
+	defer func() { h.metrics.TrackApplicationCall("getPublicKeys").End(err) }()
 
 	var result []domain.PublicKey
 	if err := h.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {

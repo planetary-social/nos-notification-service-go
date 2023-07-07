@@ -22,8 +22,8 @@ func NewGetTokensHandler(
 	}
 }
 
-func (h *GetTokensHandler) Handle(ctx context.Context, publicKey domain.PublicKey) ([]domain.APNSToken, error) {
-	defer h.metrics.TrackApplicationCall("getTokens").End()
+func (h *GetTokensHandler) Handle(ctx context.Context, publicKey domain.PublicKey) (tokens []domain.APNSToken, err error) {
+	defer func() { h.metrics.TrackApplicationCall("getTokens").End(err) }()
 
 	var result []domain.APNSToken
 	if err := h.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
