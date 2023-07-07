@@ -13,6 +13,10 @@ const (
 	labelHandlerName          = "handlerName"
 	labelRelayDownloaderState = "state"
 	labelTopic                = "topic"
+
+	labelResult        = "result"
+	labelResultSuccess = "success"
+	labelResultError   = "error"
 )
 
 type Prometheus struct {
@@ -31,14 +35,14 @@ func NewPrometheus(logger logging.Logger) *Prometheus {
 				Name: "application_handler_calls_total",
 				Help: "Total number of calls to application handlers.",
 			},
-			[]string{labelHandlerName},
+			[]string{labelHandlerName, labelResult},
 		),
 		applicationHandlerCallDurationHistogram: promauto.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name: "application_handler_calls_duration",
 				Help: "Duration of calls to application handlers in seconds.",
 			},
-			[]string{labelHandlerName},
+			[]string{labelHandlerName, labelResult},
 		),
 		relayDownloaderStateGauge: promauto.NewGaugeVec(
 			prometheus.GaugeOpts{
@@ -87,14 +91,30 @@ func NewApplicationCall(p *Prometheus, handlerName string, logger logging.Logger
 	}
 }
 
-func (a *ApplicationCall) End() {
+func (a *ApplicationCall) End(err error) {
 	duration := time.Since(a.start)
 
 	a.logger.Debug().
 		WithField("handlerName", a.handlerName).
 		WithField("duration", duration).
+		WithError(err).
 		Message("application call")
 
-	a.p.applicationHandlerCallsCounter.With(prometheus.Labels{labelHandlerName: a.handlerName}).Inc()
-	a.p.applicationHandlerCallDurationHistogram.With(prometheus.Labels{labelHandlerName: a.handlerName}).Observe(duration.Seconds())
+	labels := a.getLabels(err)
+	a.p.applicationHandlerCallsCounter.With(labels).Inc()
+	a.p.applicationHandlerCallDurationHistogram.With(labels).Observe(duration.Seconds())
+}
+
+func (a *ApplicationCall) getLabels(err error) prometheus.Labels {
+	labels := prometheus.Labels{
+		labelHandlerName: a.handlerName,
+	}
+
+	if err == nil {
+		labels[labelResult] = labelResultSuccess
+	} else {
+		labels[labelResult] = labelResultError
+	}
+
+	return labels
 }

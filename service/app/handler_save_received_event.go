@@ -36,8 +36,8 @@ func NewSaveReceivedEventHandler(
 	}
 }
 
-func (h *SaveReceivedEventHandler) Handle(ctx context.Context, cmd SaveReceivedEvent) error {
-	defer h.metrics.TrackApplicationCall("saveReceivedEvent").End()
+func (h *SaveReceivedEventHandler) Handle(ctx context.Context, cmd SaveReceivedEvent) (err error) {
+	defer func() { h.metrics.TrackApplicationCall("saveReceivedEvent").End(err) }()
 
 	if !domain.ShouldDownloadEventKind(cmd.event.Kind()) {
 		return fmt.Errorf("event '%s' shouldn't have been downloaded", cmd.event.String())
