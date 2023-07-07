@@ -75,7 +75,7 @@ func (d *Downloader) Run(ctx context.Context) error {
 
 func (d *Downloader) storeMetricsLoop(ctx context.Context) {
 	for {
-		d.storeMetrics(ctx)
+		d.storeMetrics()
 
 		select {
 		case <-time.After(storeMetricsEvery):
@@ -85,7 +85,7 @@ func (d *Downloader) storeMetricsLoop(ctx context.Context) {
 	}
 }
 
-func (d *Downloader) storeMetrics(ctx context.Context) {
+func (d *Downloader) storeMetrics() {
 	d.relayDownloadersLock.Lock()
 	defer d.relayDownloadersLock.Unlock()
 
@@ -227,7 +227,7 @@ func (d *RelayDownloader) connectAndDownload(ctx context.Context) error {
 
 	defer d.setState(RelayDownloaderStateDisconnected)
 
-	d.logger.Debug().Message("connecting")
+	d.logger.Trace().Message("connecting")
 
 	conn, _, err := websocket.DefaultDialer.DialContext(ctx, d.address.String(), nil)
 	if err != nil {
@@ -269,7 +269,7 @@ func (d *RelayDownloader) handleMessage(messageBytes []byte) error {
 
 	switch v := envelope.(type) {
 	case *nostr.EOSEEnvelope:
-		d.logger.Debug().
+		d.logger.Trace().
 			WithField("subscription", string(*v)).
 			Message("received EOSE")
 	case *nostr.EventEnvelope:
@@ -277,11 +277,10 @@ func (d *RelayDownloader) handleMessage(messageBytes []byte) error {
 		if err != nil {
 			return errors.Wrap(err, "error creating an event")
 		}
-
 		d.receivedEventPublisher.Publish(d.address, event)
 	default:
 		d.logger.
-			Error().
+			Debug().
 			WithField("message", string(messageBytes)).
 			Message("unhandled message")
 	}
@@ -335,7 +334,7 @@ func (d *RelayDownloader) updateSubs(
 ) error {
 	for _, publicKey := range activeSubscriptions.List() {
 		if !publicKeys.Contains(publicKey) {
-			d.logger.Debug().
+			d.logger.Trace().
 				WithField("publicKey", publicKey).
 				Message("closing subscription")
 
@@ -356,7 +355,7 @@ func (d *RelayDownloader) updateSubs(
 
 	for _, publicKey := range publicKeys.List() {
 		if ok := activeSubscriptions.Contains(publicKey); !ok {
-			d.logger.Debug().
+			d.logger.Trace().
 				WithField("publicKey", publicKey).
 				Message("opening subscription")
 
