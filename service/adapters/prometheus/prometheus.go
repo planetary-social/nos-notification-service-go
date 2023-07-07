@@ -55,7 +55,7 @@ func NewPrometheus(logger logging.Logger) *Prometheus {
 			[]string{labelTopic},
 		),
 
-		logger: logger,
+		logger: logger.New("prometheus"),
 	}
 }
 
