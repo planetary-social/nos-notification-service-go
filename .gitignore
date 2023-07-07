@@ -1,1 +1,7 @@
 .idea/
+.env
+.envrc
+# don't commit APNS certs
+*.p12
+# don't commit firestore certs (which usually follow this pattern)
+nos-notification-service-*.json
