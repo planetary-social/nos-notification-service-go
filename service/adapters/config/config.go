@@ -72,7 +72,7 @@ func (c *EnvironmentConfigLoader) Load() (config.Config, error) {
 }
 
 func (c *EnvironmentConfigLoader) loadEnvironment() (config.Environment, error) {
-	v := strings.ToUpper(os.Getenv(envEnvironment))
+	v := strings.ToUpper(c.getenv(envEnvironment))
 	switch v {
 	case "PRODUCTION":
 		return config.EnvironmentProduction, nil
@@ -85,12 +85,8 @@ func (c *EnvironmentConfigLoader) loadEnvironment() (config.Environment, error) 
 	}
 }
 
-func (c *EnvironmentConfigLoader) getenv(key string) string {
-	return os.Getenv(fmt.Sprintf("%s_%s", envPrefix, key))
-}
-
 func (c *EnvironmentConfigLoader) loadLogLevel() (logging.Level, error) {
-	v := strings.ToUpper(os.Getenv(envLogLevel))
+	v := strings.ToUpper(c.getenv(envLogLevel))
 	switch v {
 	case "TRACE":
 		return logging.LevelTrace, nil
@@ -105,4 +101,8 @@ func (c *EnvironmentConfigLoader) loadLogLevel() (logging.Level, error) {
 	default:
 		return 0, fmt.Errorf("invalid log level requested '%s'", v)
 	}
+}
+
+func (c *EnvironmentConfigLoader) getenv(key string) string {
+	return os.Getenv(fmt.Sprintf("%s_%s", envPrefix, key))
 }
