@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	tagBatchSize       = 150
-	apnsTokenBatchSize = 500
+	tagBatchSize                       = 150
+	apnsTokenBatchSize                 = 500
+	onlySaveEventForEventsWithMoreTags = 500
 )
 
 type ProcessSavedEvent struct {
@@ -59,12 +60,14 @@ func (h *ProcessSavedEventHandler) Handle(ctx context.Context, cmd ProcessSavedE
 		return errors.Wrap(err, "error loading event")
 	}
 
-	if err := h.saveTags(ctx, event, logger); err != nil {
-		return errors.Wrap(err, "error saving tags")
-	}
+	if len(event.Tags()) <= onlySaveEventForEventsWithMoreTags {
+		if err := h.saveTags(ctx, event, logger); err != nil {
+			return errors.Wrap(err, "error saving tags")
+		}
 
-	if err := h.generateSendAndSaveNotifications(ctx, event, logger); err != nil {
-		return errors.Wrap(err, "error saving tags")
+		if err := h.generateSendAndSaveNotifications(ctx, event, logger); err != nil {
+			return errors.Wrap(err, "error saving notifications")
+		}
 	}
 
 	return nil
