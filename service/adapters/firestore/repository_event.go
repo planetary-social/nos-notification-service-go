@@ -171,8 +171,22 @@ func (e *EventRepository) loadEventsForFilters(ctx context.Context, filters doma
 
 			for tagName, tagValues := range filter.Tags() {
 				for _, tagValue := range tagValues {
-					if err := e.tagRepository.GetEvents(ctx, tagName, tagValue, filter.Since(), filter.Until(), filter.Limit(), events); err != nil {
+					eventIds, err := e.tagRepository.GetEventIds(ctx, tagName, tagValue, filter.Since(), filter.Until(), filter.Limit())
+					if err != nil {
 						return nil, errors.Wrapf(err, "error loading events for tag '%s'->'%s'", tagName.String(), tagValue)
+					}
+
+					for _, eventId := range eventIds {
+						if _, ok := events[eventId.Hex()]; ok {
+							continue
+						}
+
+						event, err := e.Get(ctx, eventId)
+						if err != nil {
+							return nil, errors.Wrap(err, "error getting an event")
+						}
+
+						events[event.Id().Hex()] = event
 					}
 				}
 			}
