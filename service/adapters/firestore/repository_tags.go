@@ -69,7 +69,6 @@ func (e *TagRepository) Save(event domain.Event, tags []domain.EventTag) error {
 				eventFieldPublicKey: ensureType[string](event.PubKey().Hex()),
 				eventFieldCreatedAt: ensureType[time.Time](event.CreatedAt()),
 				eventFieldKind:      ensureType[int](event.Kind().Int()),
-				eventFieldRaw:       ensureType[[]byte](event.Raw()),
 			}
 			if err := e.tx.Set(tagValueEventDocPath, tagValueEventDocData, firestore.MergeAll); err != nil {
 				return errors.Wrap(err, "error updating the event doc")
@@ -80,7 +79,7 @@ func (e *TagRepository) Save(event domain.Event, tags []domain.EventTag) error {
 	return nil
 }
 
-func (e *TagRepository) GetEvents(ctx context.Context, name domain.EventTagName, value string, since, until *time.Time, limit int, events map[string]domain.Event) error {
+func (e *TagRepository) GetEventIds(ctx context.Context, name domain.EventTagName, value string, since, until *time.Time, limit int) ([]domain.EventId, error) {
 	keyTag := encodeStringAsHex(name.String())
 	keyValue := encodeStringAsHex(value)
 
@@ -100,28 +99,30 @@ func (e *TagRepository) GetEvents(ctx context.Context, name domain.EventTagName,
 
 	docs := query.Documents(ctx)
 
+	var result []domain.EventId
+
 	for {
 		doc, err := docs.Next()
 		if err != nil {
 			if err == iterator.Done {
 				break
 			}
-			return errors.Wrap(err, "error getting next document")
+			return nil, errors.Wrap(err, "error getting next document")
 		}
 
 		data := make(map[string]any)
 		if err := doc.DataTo(&data); err != nil {
-			return errors.Wrap(err, "error reading document data")
+			return nil, errors.Wrap(err, "error reading document data")
 		}
 
-		event, err := domain.NewEventFromRaw(data[eventFieldRaw].([]byte))
+		eventId, err := domain.NewEventId(data[eventFieldId].(string))
 		if err != nil {
-			return errors.Wrap(err, "error creating the event")
+			return nil, errors.Wrap(err, "error creating the event id")
 		}
 
-		events[event.Id().Hex()] = event
+		result = append(result, eventId)
 	}
-	return nil
+	return result, nil
 }
 
 func encodeStringAsHex(s string) string {
