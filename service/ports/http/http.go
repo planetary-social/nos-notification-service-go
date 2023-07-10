@@ -89,6 +89,9 @@ func (s *Server) serveWs(ctx context.Context, rw http.ResponseWriter, r *http.Re
 func (s *Server) handleConnection(ctx context.Context, conn *websocket.Conn) error {
 	s.logger.Debug().Message("accepted websocket connection")
 
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	subscriptions := make(map[string]context.CancelFunc)
 
 	for {
@@ -127,20 +130,60 @@ func (s *Server) handleConnection(ctx context.Context, conn *websocket.Conn) err
 				return errors.Wrap(err, "error creating filters")
 			}
 
-			if cancel, ok := subscriptions[v.SubscriptionID]; ok {
-				cancel()
-				delete(subscriptions, v.SubscriptionID)
-			}
+			s.closeSubscription(subscriptions, v.SubscriptionID)
 
-			ctx, cancel := context.WithCancel(ctx)
-			go s.sendEvents(ctx, conn, filters)
-			subscriptions[v.SubscriptionID] = cancel
+			subCtx, subCancel := context.WithCancel(ctx)
+			go s.sendEvents(subCtx, conn, filters, v.SubscriptionID)
+			subscriptions[v.SubscriptionID] = subCancel
+		case *nostr.CloseEnvelope:
+			s.closeSubscription(subscriptions, string(*v))
 		default:
 			s.logger.Error().WithField("message", message).Message("received an unknown message")
 		}
 	}
 }
 
-func (s *Server) sendEvents(ctx context.Context, conn *websocket.Conn, filters domain.Filters) {
+func (s *Server) sendEvents(ctx context.Context, conn *websocket.Conn, filters domain.Filters, subscriptionName string) {
+	if err := s.sendEventsErr(ctx, conn, filters, subscriptionName); err != nil {
+		if !errors.Is(err, context.Canceled) {
+			s.logger.Error().WithError(err).Message("get events returned an error")
+			return
+		}
+	}
+}
 
+func (s *Server) sendEventsErr(ctx context.Context, conn *websocket.Conn, filters domain.Filters, subscriptionName string) error {
+	for event := range s.app.Queries.GetEvents.Handle(ctx, filters) {
+		if err := event.Err(); err != nil {
+			return errors.Wrap(err, "received an error")
+		}
+
+		if event.EOSE() {
+			envelope := nostr.EOSEEnvelope(subscriptionName)
+
+			if err := conn.WriteJSON(envelope); err != nil {
+				return errors.Wrap(err, "error writing EOSE")
+			}
+
+			continue
+		}
+
+		envelope := nostr.EventEnvelope{
+			SubscriptionID: &subscriptionName,
+			Event:          event.Event().Libevent(),
+		}
+
+		if err := conn.WriteJSON(envelope); err != nil {
+			return errors.Wrap(err, "error writing an event")
+		}
+	}
+
+	return nil
+}
+
+func (s *Server) closeSubscription(subscriptions map[string]context.CancelFunc, subscriptionName string) {
+	if cancel, ok := subscriptions[subscriptionName]; ok {
+		cancel()
+		delete(subscriptions, subscriptionName)
+	}
 }
