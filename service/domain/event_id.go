@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 
 	"github.com/boreq/errors"
+	"github.com/nbd-wtf/go-nostr/nip19"
 )
 
 type EventId struct {
@@ -31,6 +32,21 @@ func MustNewEventId(s string) EventId {
 		panic(err)
 	}
 	return v
+}
+
+func NewEventIdFromNote(s string) (EventId, error) {
+	prefix, value, err := nip19.Decode(s)
+	if err != nil {
+		return EventId{}, errors.Wrap(err, "error calling nip19 decode")
+	}
+	if prefix != "note" {
+		return EventId{}, errors.New("invalid prefix")
+	}
+	s, ok := value.(string)
+	if !ok {
+		return EventId{}, errors.New("library returned invalid type")
+	}
+	return NewEventId(s)
 }
 
 func (id EventId) Hex() string {
