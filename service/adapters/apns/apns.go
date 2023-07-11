@@ -49,6 +49,7 @@ func (a *APNS) SendNotification(notification notifications.Notification) error {
 	n.DeviceToken = notification.APNSToken().Hex()
 	n.Topic = a.cfg.APNSTopic()
 	n.Payload = notification.Payload()
+	n.Priority = apns2.PriorityLow
 
 	resp, err := a.client.Push(n)
 	if err != nil {
