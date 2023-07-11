@@ -40,6 +40,7 @@ type EventRepository interface {
 	Exists(ctx context.Context, id domain.EventId) (bool, error)
 	GetEvents(ctx context.Context, filters domain.Filters) <-chan EventOrError
 	SaveNotificationForEvent(notification notifications.Notification) error
+	GetNotifications(ctx context.Context, id domain.EventId) ([]notifications.Notification, error)
 }
 
 type TagRepository interface {
@@ -61,10 +62,11 @@ type Commands struct {
 }
 
 type Queries struct {
-	GetRelays     *GetRelaysHandler
-	GetPublicKeys *GetPublicKeysHandler
-	GetTokens     *GetTokensHandler
-	GetEvents     *GetEventsHandler
+	GetRelays        *GetRelaysHandler
+	GetPublicKeys    *GetPublicKeysHandler
+	GetTokens        *GetTokensHandler
+	GetEvents        *GetEventsHandler
+	GetNotifications *GetNotificationsHandler
 }
 
 type APNS interface {

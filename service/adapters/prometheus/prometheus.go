@@ -3,10 +3,11 @@ package prometheus
 import (
 	"time"
 
+	"github.com/boreq/errors"
 	"github.com/planetary-social/go-notification-service/internal/logging"
 	"github.com/planetary-social/go-notification-service/service/app"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 )
 
 const (
@@ -25,42 +26,65 @@ type Prometheus struct {
 	relayDownloaderStateGauge               *prometheus.GaugeVec
 	subscriptionQueueLengthGauge            *prometheus.GaugeVec
 
+	registry *prometheus.Registry
+
 	logger logging.Logger
 }
 
-func NewPrometheus(logger logging.Logger) *Prometheus {
+func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
+	applicationHandlerCallsCounter := prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "application_handler_calls_total",
+			Help: "Total number of calls to application handlers.",
+		},
+		[]string{labelHandlerName, labelResult},
+	)
+	applicationHandlerCallDurationHistogram := prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name: "application_handler_calls_duration",
+			Help: "Duration of calls to application handlers in seconds.",
+		},
+		[]string{labelHandlerName, labelResult},
+	)
+	relayDownloaderStateGauge := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "relay_downloader_count",
+			Help: "Number of running relay downloaders.",
+		},
+		[]string{labelRelayDownloaderState},
+	)
+	subscriptionQueueLengthGauge := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "subscription_queue_length",
+			Help: "Number of events in the subscription queue.",
+		},
+		[]string{labelTopic},
+	)
+
+	reg := prometheus.NewRegistry()
+	for _, v := range []prometheus.Collector{
+		applicationHandlerCallsCounter,
+		applicationHandlerCallDurationHistogram,
+		relayDownloaderStateGauge,
+		subscriptionQueueLengthGauge,
+		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
+		collectors.NewGoCollector(),
+	} {
+		if err := reg.Register(v); err != nil {
+			return nil, errors.Wrap(err, "error registering a collector")
+		}
+	}
+
 	return &Prometheus{
-		applicationHandlerCallsCounter: promauto.NewCounterVec(
-			prometheus.CounterOpts{
-				Name: "application_handler_calls_total",
-				Help: "Total number of calls to application handlers.",
-			},
-			[]string{labelHandlerName, labelResult},
-		),
-		applicationHandlerCallDurationHistogram: promauto.NewHistogramVec(
-			prometheus.HistogramOpts{
-				Name: "application_handler_calls_duration",
-				Help: "Duration of calls to application handlers in seconds.",
-			},
-			[]string{labelHandlerName, labelResult},
-		),
-		relayDownloaderStateGauge: promauto.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Name: "relay_downloader_count",
-				Help: "Number of running relay downloaders.",
-			},
-			[]string{labelRelayDownloaderState},
-		),
-		subscriptionQueueLengthGauge: promauto.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Name: "subscription_queue_length",
-				Help: "Number of events in the subscription queue.",
-			},
-			[]string{labelTopic},
-		),
+		applicationHandlerCallsCounter:          applicationHandlerCallsCounter,
+		applicationHandlerCallDurationHistogram: applicationHandlerCallDurationHistogram,
+		relayDownloaderStateGauge:               relayDownloaderStateGauge,
+		subscriptionQueueLengthGauge:            subscriptionQueueLengthGauge,
+
+		registry: reg,
 
 		logger: logger.New("prometheus"),
-	}
+	}, nil
 }
 
 func (p *Prometheus) TrackApplicationCall(handlerName string) app.ApplicationCall {
@@ -73,6 +97,10 @@ func (p *Prometheus) MeasureRelayDownloadersState(n int, state app.RelayDownload
 
 func (p *Prometheus) ReportSubscriptionQueueLength(topic string, n int) {
 	p.subscriptionQueueLengthGauge.With(prometheus.Labels{labelTopic: topic}).Set(float64(n))
+}
+
+func (p *Prometheus) Registry() *prometheus.Registry {
+	return p.registry
 }
 
 type ApplicationCall struct {

@@ -25,6 +25,14 @@ func NewEventId(s string) (EventId, error) {
 	return EventId{s}, nil
 }
 
+func MustNewEventId(s string) EventId {
+	v, err := NewEventId(s)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
 func (id EventId) Hex() string {
 	return id.s
 }

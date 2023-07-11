@@ -2,28 +2,31 @@ package http
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"net/http"
 
 	"github.com/boreq/errors"
 	"github.com/planetary-social/go-notification-service/internal/logging"
+	prometheusadapters "github.com/planetary-social/go-notification-service/service/adapters/prometheus"
 	"github.com/planetary-social/go-notification-service/service/config"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type MetricsServer struct {
-	config config.Config
-	logger logging.Logger
+	prometheus *prometheusadapters.Prometheus
+	config     config.Config
+	logger     logging.Logger
 }
 
 func NewMetricsServer(
+	prometheus *prometheusadapters.Prometheus,
 	config config.Config,
 	logger logging.Logger,
 ) MetricsServer {
 	return MetricsServer{
-		config: config,
-		logger: logger.New("metricsServer"),
+		prometheus: prometheus,
+		config:     config,
+		logger:     logger.New("metricsServer"),
 	}
 }
 
@@ -39,7 +42,7 @@ func (s *MetricsServer) ListenAndServe(ctx context.Context) error {
 	go func() {
 		<-ctx.Done()
 		if err := listener.Close(); err != nil {
-			fmt.Println("error closing listener:", err)
+			s.logger.Error().WithError(err).Message("error closing listener")
 		}
 	}()
 
@@ -48,6 +51,6 @@ func (s *MetricsServer) ListenAndServe(ctx context.Context) error {
 
 func (s *MetricsServer) createMux() *http.ServeMux {
 	mux := http.NewServeMux()
-	mux.Handle("/metrics", promhttp.Handler())
+	mux.Handle("/metrics", promhttp.HandlerFor(s.prometheus.Registry(), promhttp.HandlerOpts{}))
 	return mux
 }

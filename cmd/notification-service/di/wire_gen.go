@@ -42,7 +42,11 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	}
 	adaptersFactoryFn := newAdaptersFactoryFn(diBuildTransactionFirestoreAdaptersDependencies)
 	transactionProvider := firestore.NewTransactionProvider(client, adaptersFactoryFn)
-	prometheusPrometheus := prometheus.NewPrometheus(logger)
+	prometheusPrometheus, err := prometheus.NewPrometheus(logger)
+	if err != nil {
+		cleanup()
+		return Service{}, nil, err
+	}
 	saveReceivedEventHandler := app.NewSaveReceivedEventHandler(transactionProvider, logger, prometheusPrometheus)
 	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider, logger, prometheusPrometheus)
 	commands := app.Commands{
@@ -54,18 +58,20 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	getTokensHandler := app.NewGetTokensHandler(transactionProvider, prometheusPrometheus)
 	receivedEventPubSub := pubsub.NewReceivedEventPubSub()
 	getEventsHandler := app.NewGetEventsHandler(transactionProvider, receivedEventPubSub, prometheusPrometheus)
+	getNotificationsHandler := app.NewGetNotificationsHandler(transactionProvider, prometheusPrometheus)
 	queries := app.Queries{
-		GetRelays:     getRelaysHandler,
-		GetPublicKeys: getPublicKeysHandler,
-		GetTokens:     getTokensHandler,
-		GetEvents:     getEventsHandler,
+		GetRelays:        getRelaysHandler,
+		GetPublicKeys:    getPublicKeysHandler,
+		GetTokens:        getTokensHandler,
+		GetEvents:        getEventsHandler,
+		GetNotifications: getNotificationsHandler,
 	}
 	application := app.Application{
 		Commands: commands,
 		Queries:  queries,
 	}
 	server := http.NewServer(configConfig, application, logger)
-	metricsServer := http.NewMetricsServer(configConfig, logger)
+	metricsServer := http.NewMetricsServer(prometheusPrometheus, configConfig, logger)
 	downloader := app.NewDownloader(transactionProvider, receivedEventPubSub, logger, prometheusPrometheus)
 	receivedEventSubscriber := memorypubsub.NewReceivedEventSubscriber(receivedEventPubSub, saveReceivedEventHandler, logger)
 	subscriber, err := firestore.NewWatermillSubscriber(client, watermillAdapter)
@@ -87,14 +93,14 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	}, nil
 }
 
-func BuildIntegrationService(contextContext context.Context, configConfig config.Config) (Service, func(), error) {
+func BuildIntegrationService(contextContext context.Context, configConfig config.Config) (IntegrationService, func(), error) {
 	logger, err := newLogger(configConfig)
 	if err != nil {
-		return Service{}, nil, err
+		return IntegrationService{}, nil, err
 	}
 	client, cleanup, err := newFirestoreClient(contextContext, configConfig, logger)
 	if err != nil {
-		return Service{}, nil, err
+		return IntegrationService{}, nil, err
 	}
 	watermillAdapter := logging.NewWatermillAdapter(logger)
 	diBuildTransactionFirestoreAdaptersDependencies := buildTransactionFirestoreAdaptersDependencies{
@@ -102,7 +108,11 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 	}
 	adaptersFactoryFn := newAdaptersFactoryFn(diBuildTransactionFirestoreAdaptersDependencies)
 	transactionProvider := firestore.NewTransactionProvider(client, adaptersFactoryFn)
-	prometheusPrometheus := prometheus.NewPrometheus(logger)
+	prometheusPrometheus, err := prometheus.NewPrometheus(logger)
+	if err != nil {
+		cleanup()
+		return IntegrationService{}, nil, err
+	}
 	saveReceivedEventHandler := app.NewSaveReceivedEventHandler(transactionProvider, logger, prometheusPrometheus)
 	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider, logger, prometheusPrometheus)
 	commands := app.Commands{
@@ -114,35 +124,41 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 	getTokensHandler := app.NewGetTokensHandler(transactionProvider, prometheusPrometheus)
 	receivedEventPubSub := pubsub.NewReceivedEventPubSub()
 	getEventsHandler := app.NewGetEventsHandler(transactionProvider, receivedEventPubSub, prometheusPrometheus)
+	getNotificationsHandler := app.NewGetNotificationsHandler(transactionProvider, prometheusPrometheus)
 	queries := app.Queries{
-		GetRelays:     getRelaysHandler,
-		GetPublicKeys: getPublicKeysHandler,
-		GetTokens:     getTokensHandler,
-		GetEvents:     getEventsHandler,
+		GetRelays:        getRelaysHandler,
+		GetPublicKeys:    getPublicKeysHandler,
+		GetTokens:        getTokensHandler,
+		GetEvents:        getEventsHandler,
+		GetNotifications: getNotificationsHandler,
 	}
 	application := app.Application{
 		Commands: commands,
 		Queries:  queries,
 	}
 	server := http.NewServer(configConfig, application, logger)
-	metricsServer := http.NewMetricsServer(configConfig, logger)
+	metricsServer := http.NewMetricsServer(prometheusPrometheus, configConfig, logger)
 	downloader := app.NewDownloader(transactionProvider, receivedEventPubSub, logger, prometheusPrometheus)
 	receivedEventSubscriber := memorypubsub.NewReceivedEventSubscriber(receivedEventPubSub, saveReceivedEventHandler, logger)
 	subscriber, err := firestore.NewWatermillSubscriber(client, watermillAdapter)
 	if err != nil {
 		cleanup()
-		return Service{}, nil, err
+		return IntegrationService{}, nil, err
 	}
 	generator := notifications.NewGenerator(logger)
 	apnsMock, err := apns.NewAPNSMock(configConfig, logger)
 	if err != nil {
 		cleanup()
-		return Service{}, nil, err
+		return IntegrationService{}, nil, err
 	}
 	processSavedEventHandler := app.NewProcessSavedEventHandler(transactionProvider, generator, apnsMock, logger, prometheusPrometheus)
 	eventSavedSubscriber := firestorepubsub.NewEventSavedSubscriber(subscriber, processSavedEventHandler, prometheusPrometheus, logger)
 	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber, eventSavedSubscriber)
-	return service, func() {
+	integrationService := IntegrationService{
+		Service:  service,
+		MockAPNS: apnsMock,
+	}
+	return integrationService, func() {
 		cleanup()
 	}, nil
 }
@@ -171,6 +187,12 @@ func buildTransactionFirestoreAdapters(client *firestore2.Client, tx *firestore2
 }
 
 // wire.go:
+
+type IntegrationService struct {
+	Service Service
+
+	MockAPNS *apns.APNSMock
+}
 
 type buildTransactionFirestoreAdaptersDependencies struct {
 	LoggerAdapter watermill.LoggerAdapter
