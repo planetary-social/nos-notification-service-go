@@ -45,6 +45,7 @@ func newClient(cfg config.Config) (*apns2.Client, error) {
 
 func (a *APNS) SendNotification(notification notifications.Notification) error {
 	n := &apns2.Notification{}
+	n.PushType = apns2.PushTypeBackground
 	n.ApnsID = notification.UUID().String()
 	n.DeviceToken = notification.APNSToken().Hex()
 	n.Topic = a.cfg.APNSTopic()
