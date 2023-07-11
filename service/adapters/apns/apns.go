@@ -59,6 +59,7 @@ func (a *APNS) SendNotification(notification notifications.Notification) error {
 		WithField("uuid", notification.UUID().String()).
 		WithField("response.reason", resp.Reason).
 		WithField("response.statusCode", resp.StatusCode).
+		WithField("host", a.client.Host).
 		Message("sent a notification")
 
 	return nil
