@@ -33,4 +33,5 @@ var queriesSet = wire.NewSet(
 	app.NewGetPublicKeysHandler,
 	app.NewGetTokensHandler,
 	app.NewGetEventsHandler,
+	app.NewGetNotificationsHandler,
 )

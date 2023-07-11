@@ -9,6 +9,7 @@ import (
 	googlefirestore "cloud.google.com/go/firestore"
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/google/wire"
+	"github.com/planetary-social/go-notification-service/service/adapters/apns"
 	"github.com/planetary-social/go-notification-service/service/app"
 	"github.com/planetary-social/go-notification-service/service/config"
 	"github.com/planetary-social/go-notification-service/service/domain/notifications"
@@ -30,8 +31,16 @@ func BuildService(context.Context, config.Config) (Service, func(), error) {
 	return Service{}, nil, nil
 }
 
-func BuildIntegrationService(context.Context, config.Config) (Service, func(), error) {
+type IntegrationService struct {
+	Service Service
+
+	MockAPNS *apns.APNSMock
+}
+
+func BuildIntegrationService(context.Context, config.Config) (IntegrationService, func(), error) {
 	wire.Build(
+		wire.Struct(new(IntegrationService), "*"),
+
 		NewService,
 
 		portsSet,
@@ -43,7 +52,7 @@ func BuildIntegrationService(context.Context, config.Config) (Service, func(), e
 		loggingSet,
 		integrationAdaptersSet,
 	)
-	return Service{}, nil, nil
+	return IntegrationService{}, nil, nil
 }
 
 type buildTransactionFirestoreAdaptersDependencies struct {
