@@ -30,26 +30,29 @@ type ReceivedEventPublisher interface {
 }
 
 type Downloader struct {
-	transactionProvider    TransactionProvider
-	receivedEventPublisher ReceivedEventPublisher
-	logger                 logging.Logger
-	metrics                Metrics
+	eventWasAlreadySavedCache EventWasAlreadySavedCache
+	transactionProvider       TransactionProvider
+	receivedEventPublisher    ReceivedEventPublisher
+	logger                    logging.Logger
+	metrics                   Metrics
 
 	relayDownloaders     map[domain.RelayAddress]*RelayDownloader
 	relayDownloadersLock sync.Mutex
 }
 
 func NewDownloader(
+	eventWasAlreadySavedCache EventWasAlreadySavedCache,
 	transaction TransactionProvider,
 	receivedEventPublisher ReceivedEventPublisher,
 	logger logging.Logger,
 	metrics Metrics,
 ) *Downloader {
 	return &Downloader{
-		transactionProvider:    transaction,
-		receivedEventPublisher: receivedEventPublisher,
-		logger:                 logger.New("downloader"),
-		metrics:                metrics,
+		eventWasAlreadySavedCache: eventWasAlreadySavedCache,
+		transactionProvider:       transaction,
+		receivedEventPublisher:    receivedEventPublisher,
+		logger:                    logger.New("downloader"),
+		metrics:                   metrics,
 
 		relayDownloaders: map[domain.RelayAddress]*RelayDownloader{},
 	}
@@ -127,6 +130,7 @@ func (d *Downloader) updateRelays(ctx context.Context) error {
 				Message("creating a relay downloader")
 			relayDownloader := NewRelayDownloader(
 				ctx,
+				d.eventWasAlreadySavedCache,
 				d.transactionProvider,
 				d.receivedEventPublisher,
 				d.logger,
@@ -171,9 +175,10 @@ var (
 )
 
 type RelayDownloader struct {
-	transactionProvider    TransactionProvider
-	receivedEventPublisher ReceivedEventPublisher
-	logger                 logging.Logger
+	eventWasAlreadySavedCache EventWasAlreadySavedCache
+	transactionProvider       TransactionProvider
+	receivedEventPublisher    ReceivedEventPublisher
+	logger                    logging.Logger
 
 	state      RelayDownloaderState
 	stateMutex sync.Mutex
@@ -184,6 +189,7 @@ type RelayDownloader struct {
 
 func NewRelayDownloader(
 	ctx context.Context,
+	eventWasAlreadySavedCache EventWasAlreadySavedCache,
 	transactionProvider TransactionProvider,
 	receivedEventPublisher ReceivedEventPublisher,
 	logger logging.Logger,
@@ -191,9 +197,10 @@ func NewRelayDownloader(
 ) *RelayDownloader {
 	ctx, cancel := context.WithCancel(ctx)
 	v := &RelayDownloader{
-		transactionProvider:    transactionProvider,
-		receivedEventPublisher: receivedEventPublisher,
-		logger:                 logger.New(fmt.Sprintf("relayDownloader(%s)", address)),
+		eventWasAlreadySavedCache: eventWasAlreadySavedCache,
+		transactionProvider:       transactionProvider,
+		receivedEventPublisher:    receivedEventPublisher,
+		logger:                    logger.New(fmt.Sprintf("relayDownloader(%s)", address)),
 
 		state: RelayDownloaderStateInitializing,
 
@@ -277,7 +284,9 @@ func (d *RelayDownloader) handleMessage(messageBytes []byte) error {
 		if err != nil {
 			return errors.Wrap(err, "error creating an event")
 		}
-		d.receivedEventPublisher.Publish(d.address, event)
+		if !d.eventWasAlreadySavedCache.EventWasAlreadySaved(event.Id()) {
+			d.receivedEventPublisher.Publish(d.address, event)
+		}
 	default:
 		d.logger.
 			Debug().

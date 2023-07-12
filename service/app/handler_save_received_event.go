@@ -19,20 +19,23 @@ func NewSaveReceivedEvent(relay domain.RelayAddress, event domain.Event) SaveRec
 }
 
 type SaveReceivedEventHandler struct {
-	transactionProvider TransactionProvider
-	logger              logging.Logger
-	metrics             Metrics
+	eventWasAlreadySavedCache EventWasAlreadySavedCache
+	transactionProvider       TransactionProvider
+	logger                    logging.Logger
+	metrics                   Metrics
 }
 
 func NewSaveReceivedEventHandler(
+	eventWasAlreadySavedCache EventWasAlreadySavedCache,
 	transactionProvider TransactionProvider,
 	logger logging.Logger,
 	metrics Metrics,
 ) *SaveReceivedEventHandler {
 	return &SaveReceivedEventHandler{
-		transactionProvider: transactionProvider,
-		logger:              logger.New("saveReceivedEventHandler"),
-		metrics:             metrics,
+		eventWasAlreadySavedCache: eventWasAlreadySavedCache,
+		transactionProvider:       transactionProvider,
+		logger:                    logger.New("saveReceivedEventHandler"),
+		metrics:                   metrics,
 	}
 }
 
@@ -41,6 +44,10 @@ func (h *SaveReceivedEventHandler) Handle(ctx context.Context, cmd SaveReceivedE
 
 	if !domain.ShouldDownloadEventKind(cmd.event.Kind()) {
 		return fmt.Errorf("event '%s' shouldn't have been downloaded", cmd.event.String())
+	}
+
+	if h.eventWasAlreadySavedCache.EventWasAlreadySaved(cmd.event.Id()) {
+		return nil
 	}
 
 	h.logger.Debug().
@@ -58,6 +65,7 @@ func (h *SaveReceivedEventHandler) Handle(ctx context.Context, cmd SaveReceivedE
 		}
 
 		if exists {
+			h.eventWasAlreadySavedCache.MarkEventAsAlreadySaved(cmd.event.Id())
 			return nil
 		}
 

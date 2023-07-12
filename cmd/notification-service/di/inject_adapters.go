@@ -8,6 +8,7 @@ import (
 	"github.com/boreq/errors"
 	"github.com/google/wire"
 	"github.com/planetary-social/go-notification-service/internal/logging"
+	"github.com/planetary-social/go-notification-service/service/adapters"
 	"github.com/planetary-social/go-notification-service/service/adapters/apns"
 	"github.com/planetary-social/go-notification-service/service/adapters/firestore"
 	"github.com/planetary-social/go-notification-service/service/adapters/prometheus"
@@ -64,6 +65,9 @@ var adaptersSet = wire.NewSet(
 	prometheus.NewPrometheus,
 	wire.Bind(new(app.Metrics), new(*prometheus.Prometheus)),
 	wire.Bind(new(firestorepubsub.Metrics), new(*prometheus.Prometheus)),
+
+	adapters.NewMemoryEventWasAlreadySavedCache,
+	wire.Bind(new(app.EventWasAlreadySavedCache), new(*adapters.MemoryEventWasAlreadySavedCache)),
 )
 
 var integrationAdaptersSet = wire.NewSet(
@@ -73,6 +77,9 @@ var integrationAdaptersSet = wire.NewSet(
 	prometheus.NewPrometheus,
 	wire.Bind(new(app.Metrics), new(*prometheus.Prometheus)),
 	wire.Bind(new(firestorepubsub.Metrics), new(*prometheus.Prometheus)),
+
+	adapters.NewMemoryEventWasAlreadySavedCache,
+	wire.Bind(new(app.EventWasAlreadySavedCache), new(*adapters.MemoryEventWasAlreadySavedCache)),
 )
 
 func newFirestoreClient(ctx context.Context, config config.Config, logger logging.Logger) (*googlefirestore.Client, func(), error) {
