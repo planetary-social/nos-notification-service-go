@@ -24,7 +24,7 @@ func NewGetNotificationsHandler(
 }
 
 func (h *GetNotificationsHandler) Handle(ctx context.Context, id domain.EventId) (result []notifications.Notification, err error) {
-	defer func() { h.metrics.TrackApplicationCall("getNotifications").End(err) }()
+	defer h.metrics.StartApplicationCall("getNotifications").End(&err)
 
 	if err := h.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
 		tmp, err := adapters.Events.GetNotifications(ctx, id)

@@ -116,10 +116,12 @@ type ReceivedEventSubscriber interface {
 }
 
 type Metrics interface {
-	TrackApplicationCall(handlerName string) ApplicationCall
+	StartApplicationCall(handlerName string) ApplicationCall
 	MeasureRelayDownloadersState(n int, state RelayDownloaderState)
 }
 
 type ApplicationCall interface {
-	End(err error)
+	// End accepts a pointer so that you can defer this call without wrapping it
+	// in an anonymous function
+	End(err *error)
 }

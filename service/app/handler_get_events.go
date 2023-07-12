@@ -56,7 +56,7 @@ func NewGetEventsHandler(
 }
 
 func (h *GetEventsHandler) Handle(ctx context.Context, filters domain.Filters) <-chan EventOrEOSEOrError {
-	defer h.metrics.TrackApplicationCall("getEvents").End(nil)
+	defer h.metrics.StartApplicationCall("getEvents").End(nil)
 
 	ch := make(chan EventOrEOSEOrError)
 	go h.send(ctx, filters, ch)

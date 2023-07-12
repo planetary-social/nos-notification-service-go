@@ -49,7 +49,7 @@ func NewProcessSavedEventHandler(
 }
 
 func (h *ProcessSavedEventHandler) Handle(ctx context.Context, cmd ProcessSavedEvent) (err error) {
-	defer func() { h.metrics.TrackApplicationCall("processSavedEvent").End(err) }()
+	defer h.metrics.StartApplicationCall("processSavedEvent").End(&err)
 
 	logger := h.logger.WithField("event.id", cmd.eventId.Hex())
 

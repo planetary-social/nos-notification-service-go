@@ -34,7 +34,7 @@ func NewSaveRegistrationHandler(
 }
 
 func (h *SaveRegistrationHandler) Handle(ctx context.Context, cmd SaveRegistration) (err error) {
-	defer func() { h.metrics.TrackApplicationCall("saveRegistration").End(err) }()
+	defer h.metrics.StartApplicationCall("saveRegistration").End(&err)
 
 	h.logger.Debug().
 		WithField("apnsToken", cmd.registration.APNSToken().Hex()).
