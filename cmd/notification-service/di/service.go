@@ -5,6 +5,7 @@ import (
 
 	"github.com/boreq/errors"
 	"github.com/hashicorp/go-multierror"
+	"github.com/planetary-social/go-notification-service/service/adapters"
 	"github.com/planetary-social/go-notification-service/service/app"
 	"github.com/planetary-social/go-notification-service/service/ports/firestorepubsub"
 	"github.com/planetary-social/go-notification-service/service/ports/http"
@@ -12,12 +13,13 @@ import (
 )
 
 type Service struct {
-	app                     app.Application
-	server                  http.Server
-	metricsServer           http.MetricsServer
-	downloader              *app.Downloader
-	receivedEventSubscriber *memorypubsub.ReceivedEventSubscriber
-	eventSavedSubscriber    *firestorepubsub.EventSavedSubscriber
+	app                       app.Application
+	server                    http.Server
+	metricsServer             http.MetricsServer
+	downloader                *app.Downloader
+	receivedEventSubscriber   *memorypubsub.ReceivedEventSubscriber
+	eventSavedSubscriber      *firestorepubsub.EventSavedSubscriber
+	eventWasAlreadySavedCache *adapters.MemoryEventWasAlreadySavedCache
 }
 
 func NewService(
@@ -27,14 +29,16 @@ func NewService(
 	downloader *app.Downloader,
 	receivedEventSubscriber *memorypubsub.ReceivedEventSubscriber,
 	eventSavedSubscriber *firestorepubsub.EventSavedSubscriber,
+	eventWasAlreadySavedCache *adapters.MemoryEventWasAlreadySavedCache,
 ) Service {
 	return Service{
-		app:                     app,
-		server:                  server,
-		metricsServer:           metricsServer,
-		downloader:              downloader,
-		receivedEventSubscriber: receivedEventSubscriber,
-		eventSavedSubscriber:    eventSavedSubscriber,
+		app:                       app,
+		server:                    server,
+		metricsServer:             metricsServer,
+		downloader:                downloader,
+		receivedEventSubscriber:   receivedEventSubscriber,
+		eventSavedSubscriber:      eventSavedSubscriber,
+		eventWasAlreadySavedCache: eventWasAlreadySavedCache,
 	}
 }
 
@@ -72,6 +76,11 @@ func (s Service) Run(ctx context.Context) error {
 	runners++
 	go func() {
 		errCh <- errors.Wrap(s.eventSavedSubscriber.Run(ctx), "event saved subscriber error")
+	}()
+
+	runners++
+	go func() {
+		errCh <- errors.Wrap(s.eventWasAlreadySavedCache.Run(ctx), "event was already saved cache error")
 	}()
 
 	var err error

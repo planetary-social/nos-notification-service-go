@@ -13,6 +13,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/google/wire"
 	"github.com/planetary-social/go-notification-service/internal/logging"
+	"github.com/planetary-social/go-notification-service/service/adapters"
 	"github.com/planetary-social/go-notification-service/service/adapters/apns"
 	"github.com/planetary-social/go-notification-service/service/adapters/firestore"
 	"github.com/planetary-social/go-notification-service/service/adapters/prometheus"
@@ -28,6 +29,7 @@ import (
 // Injectors from wire.go:
 
 func BuildService(contextContext context.Context, configConfig config.Config) (Service, func(), error) {
+	memoryEventWasAlreadySavedCache := adapters.NewMemoryEventWasAlreadySavedCache()
 	logger, err := newLogger(configConfig)
 	if err != nil {
 		return Service{}, nil, err
@@ -47,7 +49,7 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 		cleanup()
 		return Service{}, nil, err
 	}
-	saveReceivedEventHandler := app.NewSaveReceivedEventHandler(transactionProvider, logger, prometheusPrometheus)
+	saveReceivedEventHandler := app.NewSaveReceivedEventHandler(memoryEventWasAlreadySavedCache, transactionProvider, logger, prometheusPrometheus)
 	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider, logger, prometheusPrometheus)
 	commands := app.Commands{
 		SaveReceivedEvent: saveReceivedEventHandler,
@@ -72,7 +74,7 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	}
 	server := http.NewServer(configConfig, application, logger)
 	metricsServer := http.NewMetricsServer(prometheusPrometheus, configConfig, logger)
-	downloader := app.NewDownloader(transactionProvider, receivedEventPubSub, logger, prometheusPrometheus)
+	downloader := app.NewDownloader(memoryEventWasAlreadySavedCache, transactionProvider, receivedEventPubSub, logger, prometheusPrometheus)
 	receivedEventSubscriber := memorypubsub.NewReceivedEventSubscriber(receivedEventPubSub, saveReceivedEventHandler, logger)
 	subscriber, err := firestore.NewWatermillSubscriber(client, watermillAdapter)
 	if err != nil {
@@ -87,13 +89,14 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	}
 	processSavedEventHandler := app.NewProcessSavedEventHandler(transactionProvider, generator, apnsAPNS, logger, prometheusPrometheus)
 	eventSavedSubscriber := firestorepubsub.NewEventSavedSubscriber(subscriber, processSavedEventHandler, prometheusPrometheus, logger)
-	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber, eventSavedSubscriber)
+	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber, eventSavedSubscriber, memoryEventWasAlreadySavedCache)
 	return service, func() {
 		cleanup()
 	}, nil
 }
 
 func BuildIntegrationService(contextContext context.Context, configConfig config.Config) (IntegrationService, func(), error) {
+	memoryEventWasAlreadySavedCache := adapters.NewMemoryEventWasAlreadySavedCache()
 	logger, err := newLogger(configConfig)
 	if err != nil {
 		return IntegrationService{}, nil, err
@@ -113,7 +116,7 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 		cleanup()
 		return IntegrationService{}, nil, err
 	}
-	saveReceivedEventHandler := app.NewSaveReceivedEventHandler(transactionProvider, logger, prometheusPrometheus)
+	saveReceivedEventHandler := app.NewSaveReceivedEventHandler(memoryEventWasAlreadySavedCache, transactionProvider, logger, prometheusPrometheus)
 	saveRegistrationHandler := app.NewSaveRegistrationHandler(transactionProvider, logger, prometheusPrometheus)
 	commands := app.Commands{
 		SaveReceivedEvent: saveReceivedEventHandler,
@@ -138,7 +141,7 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 	}
 	server := http.NewServer(configConfig, application, logger)
 	metricsServer := http.NewMetricsServer(prometheusPrometheus, configConfig, logger)
-	downloader := app.NewDownloader(transactionProvider, receivedEventPubSub, logger, prometheusPrometheus)
+	downloader := app.NewDownloader(memoryEventWasAlreadySavedCache, transactionProvider, receivedEventPubSub, logger, prometheusPrometheus)
 	receivedEventSubscriber := memorypubsub.NewReceivedEventSubscriber(receivedEventPubSub, saveReceivedEventHandler, logger)
 	subscriber, err := firestore.NewWatermillSubscriber(client, watermillAdapter)
 	if err != nil {
@@ -153,7 +156,7 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 	}
 	processSavedEventHandler := app.NewProcessSavedEventHandler(transactionProvider, generator, apnsMock, logger, prometheusPrometheus)
 	eventSavedSubscriber := firestorepubsub.NewEventSavedSubscriber(subscriber, processSavedEventHandler, prometheusPrometheus, logger)
-	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber, eventSavedSubscriber)
+	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber, eventSavedSubscriber, memoryEventWasAlreadySavedCache)
 	integrationService := IntegrationService{
 		Service:  service,
 		MockAPNS: apnsMock,
@@ -175,7 +178,7 @@ func buildTransactionFirestoreAdapters(client *firestore2.Client, tx *firestore2
 		return app.Adapters{}, err
 	}
 	firestorePublisher := firestore.NewPublisher(publisher, tx)
-	adapters := app.Adapters{
+	appAdapters := app.Adapters{
 		Registrations: registrationRepository,
 		Relays:        relayRepository,
 		PublicKeys:    publicKeyRepository,
@@ -183,7 +186,7 @@ func buildTransactionFirestoreAdapters(client *firestore2.Client, tx *firestore2
 		Tags:          tagRepository,
 		Publisher:     firestorePublisher,
 	}
-	return adapters, nil
+	return appAdapters, nil
 }
 
 // wire.go:

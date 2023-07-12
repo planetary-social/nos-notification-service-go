@@ -125,3 +125,8 @@ type ApplicationCall interface {
 	// in an anonymous function
 	End(err *error)
 }
+
+type EventWasAlreadySavedCache interface {
+	MarkEventAsAlreadySaved(id domain.EventId)
+	EventWasAlreadySaved(id domain.EventId) bool
+}
