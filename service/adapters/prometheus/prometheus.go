@@ -15,9 +15,10 @@ const (
 	labelRelayDownloaderState = "state"
 	labelTopic                = "topic"
 
-	labelResult        = "result"
-	labelResultSuccess = "success"
-	labelResultError   = "error"
+	labelResult                     = "result"
+	labelResultSuccess              = "success"
+	labelResultError                = "error"
+	labelResultInvalidPointerPassed = "invalidPointerPassed"
 )
 
 type Prometheus struct {
@@ -87,7 +88,7 @@ func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
 	}, nil
 }
 
-func (p *Prometheus) TrackApplicationCall(handlerName string) app.ApplicationCall {
+func (p *Prometheus) StartApplicationCall(handlerName string) app.ApplicationCall {
 	return NewApplicationCall(p, handlerName, p.logger)
 }
 
@@ -119,29 +120,37 @@ func NewApplicationCall(p *Prometheus, handlerName string, logger logging.Logger
 	}
 }
 
-func (a *ApplicationCall) End(err error) {
+func (a *ApplicationCall) End(err *error) {
 	duration := time.Since(a.start)
 
-	a.logger.Debug().
+	l := a.logger.
 		WithField("handlerName", a.handlerName).
-		WithField("duration", duration).
-		WithError(err).
-		Message("application call")
+		WithField("duration", duration)
+
+	if err == nil {
+		l.Error().Message("application call with an invalid error pointer")
+	} else {
+		l.Debug().WithError(*err).Message("application call")
+	}
 
 	labels := a.getLabels(err)
 	a.p.applicationHandlerCallsCounter.With(labels).Inc()
 	a.p.applicationHandlerCallDurationHistogram.With(labels).Observe(duration.Seconds())
 }
 
-func (a *ApplicationCall) getLabels(err error) prometheus.Labels {
+func (a *ApplicationCall) getLabels(err *error) prometheus.Labels {
 	labels := prometheus.Labels{
 		labelHandlerName: a.handlerName,
 	}
 
 	if err == nil {
-		labels[labelResult] = labelResultSuccess
+		labels[labelResult] = labelResultInvalidPointerPassed
 	} else {
-		labels[labelResult] = labelResultError
+		if *err == nil {
+			labels[labelResult] = labelResultSuccess
+		} else {
+			labels[labelResult] = labelResultError
+		}
 	}
 
 	return labels

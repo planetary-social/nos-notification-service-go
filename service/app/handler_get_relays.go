@@ -23,7 +23,7 @@ func NewGetRelaysHandler(
 }
 
 func (h *GetRelaysHandler) Handle(ctx context.Context) (addresses []domain.RelayAddress, err error) {
-	defer func() { h.metrics.TrackApplicationCall("getRelays").End(err) }()
+	defer h.metrics.StartApplicationCall("getRelays").End(&err)
 
 	var result []domain.RelayAddress
 	if err := h.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
