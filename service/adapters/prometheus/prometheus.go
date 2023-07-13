@@ -1,6 +1,7 @@
 package prometheus
 
 import (
+	"runtime/debug"
 	"time"
 
 	"github.com/boreq/errors"
@@ -14,6 +15,9 @@ const (
 	labelHandlerName          = "handlerName"
 	labelRelayDownloaderState = "state"
 	labelTopic                = "topic"
+	labelVcsRevision          = "vcsRevision"
+	labelVcsTime              = "vcsTime"
+	labelGo                   = "go"
 
 	labelResult                     = "result"
 	labelResultSuccess              = "success"
@@ -61,6 +65,13 @@ func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
 		},
 		[]string{labelTopic},
 	)
+	versionGague := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "version",
+			Help: "This metric exists just to put a commit label on it.",
+		},
+		[]string{labelVcsRevision, labelVcsTime, labelGo},
+	)
 
 	reg := prometheus.NewRegistry()
 	for _, v := range []prometheus.Collector{
@@ -68,12 +79,27 @@ func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
 		applicationHandlerCallDurationHistogram,
 		relayDownloaderStateGauge,
 		subscriptionQueueLengthGauge,
+		versionGague,
 		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
 		collectors.NewGoCollector(),
 	} {
 		if err := reg.Register(v); err != nil {
 			return nil, errors.Wrap(err, "error registering a collector")
 		}
+	}
+
+	buildInfo, ok := debug.ReadBuildInfo()
+	if ok {
+		var vcsRevision, vcsTime string
+		for _, setting := range buildInfo.Settings {
+			if setting.Key == "vcs.revision" {
+				vcsRevision = setting.Value
+			}
+			if setting.Key == "vcs.time" {
+				vcsTime = setting.Value
+			}
+		}
+		versionGague.With(prometheus.Labels{labelGo: buildInfo.GoVersion, labelVcsRevision: vcsRevision, labelVcsTime: vcsTime}).Set(1)
 	}
 
 	return &Prometheus{
