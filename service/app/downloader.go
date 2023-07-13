@@ -18,9 +18,9 @@ const (
 	getRelaysYoungerThan  = 6 * 30 * 24 * time.Hour
 	recheckRelayListEvery = 5 * time.Minute
 
-	reconnectEvery           = 1 * time.Minute
+	reconnectEvery           = 5 * time.Minute
 	getPublicKeysYoungerThan = 6 * 30 * 24 * time.Hour
-	manageSubscriptionsEvery = 1 * time.Minute
+	manageSubscriptionsEvery = 5 * time.Minute
 
 	howFarIntoThePastToLook = 24 * time.Hour
 
