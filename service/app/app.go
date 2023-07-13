@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"time"
 
 	"github.com/planetary-social/go-notification-service/service/domain"
 	"github.com/planetary-social/go-notification-service/service/domain/notifications"
@@ -31,7 +32,7 @@ type RelayRepository interface {
 }
 
 type PublicKeyRepository interface {
-	GetAPNSTokens(context.Context, domain.PublicKey) ([]domain.APNSToken, error)
+	GetAPNSTokens(ctx context.Context, publicKey domain.PublicKey, savedAfter time.Time) ([]domain.APNSToken, error)
 }
 
 type EventRepository interface {

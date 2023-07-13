@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"time"
 
 	"github.com/boreq/errors"
 	"github.com/planetary-social/go-notification-service/service/domain"
@@ -27,7 +28,7 @@ func (h *GetTokensHandler) Handle(ctx context.Context, publicKey domain.PublicKe
 
 	var result []domain.APNSToken
 	if err := h.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
-		tmp, err := adapters.PublicKeys.GetAPNSTokens(ctx, publicKey)
+		tmp, err := adapters.PublicKeys.GetAPNSTokens(ctx, publicKey, time.Now().Add(-sendNotificationsToTokensYoungerThan))
 		if err != nil {
 			return errors.Wrap(err, "error getting apns tokens")
 		}
