@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"time"
 
 	"github.com/boreq/errors"
 	"github.com/planetary-social/go-notification-service/internal"
@@ -14,6 +15,8 @@ const (
 	tagBatchSize                       = 150
 	apnsTokenBatchSize                 = 500
 	onlySaveEventForEventsWithMoreTags = 500
+
+	sendNotificationsToTokensYoungerThan = 6 * 30 * 24 * time.Hour
 )
 
 type ProcessSavedEvent struct {
@@ -126,7 +129,7 @@ func (h *ProcessSavedEventHandler) generateSendAndSaveNotifications(ctx context.
 		mentionToTokens = make(map[domain.PublicKey][]domain.APNSToken) // transactions can run multiple times
 
 		for _, mention := range mentions {
-			tmp, err := adapters.PublicKeys.GetAPNSTokens(ctx, mention)
+			tmp, err := adapters.PublicKeys.GetAPNSTokens(ctx, mention, time.Now().Add(-sendNotificationsToTokensYoungerThan))
 			if err != nil {
 				return errors.Wrap(err, "error getting the token")
 			}

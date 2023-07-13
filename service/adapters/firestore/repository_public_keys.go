@@ -2,6 +2,7 @@ package firestore
 
 import (
 	"context"
+	"time"
 
 	"cloud.google.com/go/firestore"
 	"github.com/boreq/errors"
@@ -10,8 +11,12 @@ import (
 )
 
 const (
-	collectionPublicKeys           = "publicKeys"
-	collectionPublicKeysAPNSTokens = "apnsTokens"
+	collectionPublicKeys               = "publicKeys"
+	collectionPublicKeysFieldPublicKey = "publicKey"
+
+	collectionPublicKeysAPNSTokens                      = "apnsTokens"
+	collectionPublicKeysAPNSTokensFieldToken            = "token"
+	collectionPublicKeysAPNSTokensFieldUpdatedTimestamp = "updatedTimestamp"
 )
 
 type PublicKeyRepository struct {
@@ -26,7 +31,7 @@ func NewPublicKeyRepository(client *firestore.Client, tx *firestore.Transaction)
 func (r *PublicKeyRepository) Save(registration domain.Registration) error {
 	pubKeyDocPath := r.client.Collection(collectionPublicKeys).Doc(registration.PublicKey().Hex())
 	pubKeyDocData := map[string]any{
-		"publicKey": ensureType[string](registration.PublicKey().Hex()),
+		collectionPublicKeysFieldPublicKey: ensureType[string](registration.PublicKey().Hex()),
 	}
 	if err := r.tx.Set(pubKeyDocPath, pubKeyDocData, firestore.MergeAll); err != nil {
 		return errors.Wrap(err, "error creating the public key doc")
@@ -34,7 +39,8 @@ func (r *PublicKeyRepository) Save(registration domain.Registration) error {
 
 	tokenDocPath := r.client.Collection(collectionPublicKeys).Doc(registration.PublicKey().Hex()).Collection(collectionPublicKeysAPNSTokens).Doc(registration.APNSToken().Hex())
 	tokenDocData := map[string]any{
-		"token": ensureType[string](registration.APNSToken().Hex()),
+		collectionPublicKeysAPNSTokensFieldToken:            ensureType[string](registration.APNSToken().Hex()),
+		collectionPublicKeysAPNSTokensFieldUpdatedTimestamp: ensureType[time.Time](time.Now()),
 	}
 	if err := r.tx.Set(tokenDocPath, tokenDocData, firestore.MergeAll); err != nil {
 		return errors.Wrap(err, "error creating the public key doc")
@@ -43,9 +49,14 @@ func (r *PublicKeyRepository) Save(registration domain.Registration) error {
 	return nil
 }
 
-func (r *PublicKeyRepository) GetAPNSTokens(ctx context.Context, key domain.PublicKey) ([]domain.APNSToken, error) {
-	// todo do it in transaction? emulator doesn't support it
-	docs := r.client.Collection(collectionPublicKeys).Doc(key.Hex()).Collection(collectionPublicKeysAPNSTokens).Documents(ctx)
+func (r *PublicKeyRepository) GetAPNSTokens(ctx context.Context, publicKey domain.PublicKey, savedAfter time.Time) ([]domain.APNSToken, error) {
+	docs := r.tx.Documents(
+		r.client.
+			Collection(collectionPublicKeys).
+			Doc(publicKey.Hex()).
+			Collection(collectionPublicKeysAPNSTokens).
+			Where(collectionPublicKeysAPNSTokensFieldUpdatedTimestamp, ">", savedAfter),
+	)
 
 	var result []domain.APNSToken
 
