@@ -15,9 +15,11 @@ import (
 )
 
 const (
-	recheckRelayListEvery = 1 * time.Minute
+	getRelaysYoungerThan  = 6 * 30 * 24 * time.Hour
+	recheckRelayListEvery = 5 * time.Minute
 
 	reconnectEvery           = 1 * time.Minute
+	getPublicKeysYoungerThan = 6 * 30 * 24 * time.Hour
 	manageSubscriptionsEvery = 1 * time.Minute
 
 	howFarIntoThePastToLook = 24 * time.Hour
@@ -147,7 +149,7 @@ func (d *Downloader) getRelays(ctx context.Context) (*internal.Set[domain.RelayA
 	var relays []domain.RelayAddress
 
 	if err := d.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
-		tmp, err := adapters.Relays.GetRelays(ctx)
+		tmp, err := adapters.Relays.GetRelays(ctx, time.Now().Add(-getRelaysYoungerThan))
 		if err != nil {
 			return errors.Wrap(err, "error getting relays")
 		}
@@ -412,7 +414,7 @@ func (d *RelayDownloader) getPublicKeys(ctx context.Context) (*internal.Set[doma
 	var publicKeys []domain.PublicKey
 
 	if err := d.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
-		tmp, err := adapters.Relays.GetPublicKeys(ctx, d.address)
+		tmp, err := adapters.Relays.GetPublicKeys(ctx, d.address, time.Now().Add(-getPublicKeysYoungerThan))
 		if err != nil {
 			return errors.Wrap(err, "error getting public keys")
 		}

@@ -3,6 +3,7 @@ package firestore
 import (
 	"context"
 	"encoding/hex"
+	"time"
 
 	"cloud.google.com/go/firestore"
 	"github.com/boreq/errors"
@@ -11,8 +12,13 @@ import (
 )
 
 const (
-	collectionRelays           = "relays"
-	collectionRelaysPublicKeys = "publicKeys"
+	collectionRelays                      = "relays"
+	collectionRelaysFieldAddress          = "address"
+	collectionRelaysFieldUpdatedTimestamp = "updatedTimestamp"
+
+	collectionRelaysPublicKeys                      = "publicKeys"
+	collectionRelaysPublicKeysFieldPublicKey        = "publicKey"
+	collectionRelaysPublicKeysFieldUpdatedTimestamp = "updatedTimestamp"
 )
 
 type RelayRepository struct {
@@ -26,9 +32,10 @@ func NewRelayRepository(client *firestore.Client, tx *firestore.Transaction) *Re
 
 func (r *RelayRepository) Save(registration domain.Registration) error {
 	for _, relayAddress := range registration.Relays() {
-		relayDocPath := r.client.Collection(collectionRelays).Doc(relayAddressAsKey(relayAddress))
+		relayDocPath := r.client.Collection(collectionRelays).Doc(r.relayAddressAsKey(relayAddress))
 		relayDocData := map[string]any{
-			"address": ensureType[string](relayAddress.String()),
+			collectionRelaysFieldAddress:          ensureType[string](relayAddress.String()),
+			collectionRelaysFieldUpdatedTimestamp: ensureType[time.Time](time.Now()),
 		}
 		if err := r.tx.Set(relayDocPath, relayDocData, firestore.MergeAll); err != nil {
 			return errors.Wrap(err, "error creating the relay doc")
@@ -36,7 +43,8 @@ func (r *RelayRepository) Save(registration domain.Registration) error {
 
 		pubKeyDocPath := relayDocPath.Collection(collectionRelaysPublicKeys).Doc(registration.PublicKey().Hex())
 		pubKeyDocData := map[string]any{
-			"publicKey": ensureType[string](registration.PublicKey().Hex()),
+			collectionRelaysPublicKeysFieldPublicKey:        ensureType[string](registration.PublicKey().Hex()),
+			collectionRelaysPublicKeysFieldUpdatedTimestamp: ensureType[time.Time](time.Now()),
 		}
 		if err := r.tx.Set(pubKeyDocPath, pubKeyDocData, firestore.MergeAll); err != nil {
 			return errors.Wrap(err, "error creating the public key doc")
@@ -46,9 +54,12 @@ func (r *RelayRepository) Save(registration domain.Registration) error {
 	return nil
 }
 
-func (r *RelayRepository) GetRelays(ctx context.Context) ([]domain.RelayAddress, error) {
-	// todo do it in transaction? emulator doesn't support it
-	iter := r.client.Collection(collectionRelays).Documents(ctx)
+func (r *RelayRepository) GetRelays(ctx context.Context, updatedAfter time.Time) ([]domain.RelayAddress, error) {
+	iter := r.tx.Documents(
+		r.client.
+			Collection(collectionRelays).
+			Where(collectionRelaysFieldUpdatedTimestamp, ">", updatedAfter),
+	)
 
 	var result []domain.RelayAddress
 	for {
@@ -60,7 +71,7 @@ func (r *RelayRepository) GetRelays(ctx context.Context) ([]domain.RelayAddress,
 			return nil, errors.Wrap(err, "error calling iter next")
 		}
 
-		relayAddress, err := relayAddressFromKey(docRef.Ref.ID)
+		relayAddress, err := r.relayAddressFromKey(docRef.Ref.ID)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error creating a relay address from key '%s'", docRef.Ref.ID)
 		}
@@ -70,9 +81,14 @@ func (r *RelayRepository) GetRelays(ctx context.Context) ([]domain.RelayAddress,
 	return result, nil
 }
 
-func (r *RelayRepository) GetPublicKeys(ctx context.Context, address domain.RelayAddress) ([]domain.PublicKey, error) {
-	// todo do it in transaction? emulator doesn't support it
-	iter := r.client.Collection(collectionRelays).Doc(relayAddressAsKey(address)).Collection(collectionRelaysPublicKeys).Documents(ctx)
+func (r *RelayRepository) GetPublicKeys(ctx context.Context, address domain.RelayAddress, updatedAfter time.Time) ([]domain.PublicKey, error) {
+	iter := r.tx.Documents(
+		r.client.
+			Collection(collectionRelays).
+			Doc(r.relayAddressAsKey(address)).
+			Collection(collectionRelaysPublicKeys).
+			Where(collectionRelaysFieldUpdatedTimestamp, ">", updatedAfter),
+	)
 
 	var result []domain.PublicKey
 	for {
@@ -94,11 +110,11 @@ func (r *RelayRepository) GetPublicKeys(ctx context.Context, address domain.Rela
 	return result, nil
 }
 
-func relayAddressAsKey(v domain.RelayAddress) string {
+func (r *RelayRepository) relayAddressAsKey(v domain.RelayAddress) string {
 	return hex.EncodeToString([]byte(v.String()))
 }
 
-func relayAddressFromKey(v string) (domain.RelayAddress, error) {
+func (r *RelayRepository) relayAddressFromKey(v string) (domain.RelayAddress, error) {
 	b, err := hex.DecodeString(v)
 	if err != nil {
 		return domain.RelayAddress{}, errors.Wrap(err, "error decoding relay address from hex")
