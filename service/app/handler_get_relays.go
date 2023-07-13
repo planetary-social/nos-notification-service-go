@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"time"
 
 	"github.com/boreq/errors"
 	"github.com/planetary-social/go-notification-service/service/domain"
@@ -27,7 +28,7 @@ func (h *GetRelaysHandler) Handle(ctx context.Context) (addresses []domain.Relay
 
 	var result []domain.RelayAddress
 	if err := h.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
-		tmp, err := adapters.Relays.GetRelays(ctx)
+		tmp, err := adapters.Relays.GetRelays(ctx, time.Now().Add(-getRelaysYoungerThan))
 		if err != nil {
 			return errors.Wrap(err, "error getting relays")
 		}

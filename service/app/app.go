@@ -27,8 +27,8 @@ type RegistrationRepository interface {
 }
 
 type RelayRepository interface {
-	GetRelays(ctx context.Context) ([]domain.RelayAddress, error)
-	GetPublicKeys(ctx context.Context, address domain.RelayAddress) ([]domain.PublicKey, error)
+	GetRelays(ctx context.Context, updatedAfter time.Time) ([]domain.RelayAddress, error)
+	GetPublicKeys(ctx context.Context, address domain.RelayAddress, updatedAfter time.Time) ([]domain.PublicKey, error)
 }
 
 type PublicKeyRepository interface {
