@@ -9,21 +9,27 @@ import (
 	"github.com/sideshow/apns2/certificate"
 )
 
-type APNS struct {
-	client *apns2.Client
-	cfg    config.Config
-	logger logging.Logger
+type Metrics interface {
+	ReportCallToAPNS(statusCode int, err error)
 }
 
-func NewAPNS(cfg config.Config, logger logging.Logger) (*APNS, error) {
+type APNS struct {
+	client  *apns2.Client
+	cfg     config.Config
+	metrics Metrics
+	logger  logging.Logger
+}
+
+func NewAPNS(cfg config.Config, metrics Metrics, logger logging.Logger) (*APNS, error) {
 	client, err := newClient(cfg)
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating an apns client")
 	}
 	return &APNS{
-		client: client,
-		cfg:    cfg,
-		logger: logger.New("apns"),
+		client:  client,
+		cfg:     cfg,
+		metrics: metrics,
+		logger:  logger.New("apns"),
 	}, nil
 }
 
@@ -53,6 +59,7 @@ func (a *APNS) SendNotification(notification notifications.Notification) error {
 	n.Priority = apns2.PriorityLow
 
 	resp, err := a.client.Push(n)
+	a.metrics.ReportCallToAPNS(resp.StatusCode, err)
 	if err != nil {
 		return errors.Wrap(err, "error pushing the notification")
 	}

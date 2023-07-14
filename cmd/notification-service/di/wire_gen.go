@@ -82,7 +82,7 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 		return Service{}, nil, err
 	}
 	generator := notifications.NewGenerator(logger)
-	apnsAPNS, err := apns.NewAPNS(configConfig, logger)
+	apnsAPNS, err := apns.NewAPNS(configConfig, prometheusPrometheus, logger)
 	if err != nil {
 		cleanup()
 		return Service{}, nil, err
