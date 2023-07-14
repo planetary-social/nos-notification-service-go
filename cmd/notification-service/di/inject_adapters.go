@@ -65,6 +65,7 @@ var adaptersSet = wire.NewSet(
 	prometheus.NewPrometheus,
 	wire.Bind(new(app.Metrics), new(*prometheus.Prometheus)),
 	wire.Bind(new(firestorepubsub.Metrics), new(*prometheus.Prometheus)),
+	wire.Bind(new(apns.Metrics), new(*prometheus.Prometheus)),
 
 	adapters.NewMemoryEventWasAlreadySavedCache,
 	wire.Bind(new(app.EventWasAlreadySavedCache), new(*adapters.MemoryEventWasAlreadySavedCache)),
@@ -77,6 +78,7 @@ var integrationAdaptersSet = wire.NewSet(
 	prometheus.NewPrometheus,
 	wire.Bind(new(app.Metrics), new(*prometheus.Prometheus)),
 	wire.Bind(new(firestorepubsub.Metrics), new(*prometheus.Prometheus)),
+	wire.Bind(new(apns.Metrics), new(*prometheus.Prometheus)),
 
 	adapters.NewMemoryEventWasAlreadySavedCache,
 	wire.Bind(new(app.EventWasAlreadySavedCache), new(*adapters.MemoryEventWasAlreadySavedCache)),
