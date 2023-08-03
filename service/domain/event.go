@@ -6,6 +6,7 @@ import (
 
 	"github.com/boreq/errors"
 	"github.com/nbd-wtf/go-nostr"
+	"github.com/planetary-social/go-notification-service/internal"
 )
 
 type Event struct {
@@ -100,7 +101,7 @@ func (e Event) Kind() EventKind {
 }
 
 func (e Event) Tags() []EventTag {
-	return e.tags
+	return internal.CopySlice(e.tags)
 }
 
 func (e Event) Content() string {

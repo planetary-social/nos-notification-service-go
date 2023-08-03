@@ -50,6 +50,10 @@ func (e EventTag) FirstValue() string {
 	return e.tag[1]
 }
 
+func (e EventTag) FirstValueIsAnEmptyString() bool {
+	return e.FirstValue() == ""
+}
+
 func (e EventTag) IsProfile() bool {
 	return e.name == tagProfile
 }

@@ -98,11 +98,14 @@ func (h *ProcessSavedEventHandler) saveTags(ctx context.Context, event domain.Ev
 		return nil
 	}
 
+	tags := h.filterOutEmptyTags(event.Tags())
+
 	logger.Debug().
-		WithField("numberOfTags", len(event.Tags())).
+		WithField("numberOfEventTags", len(event.Tags())).
+		WithField("numberOfSavedTags", len(tags)).
 		Message("saving tags")
 
-	for _, batch := range internal.BatchesFromSlice(event.Tags(), tagBatchSize) {
+	for _, batch := range internal.BatchesFromSlice(tags, tagBatchSize) {
 		if err := h.transactionProvider.Transact(ctx, func(ctx context.Context, adapters Adapters) error {
 			if err := adapters.Tags.Save(event, batch); err != nil {
 				return errors.Wrap(err, "error saving the batch")
@@ -176,4 +179,21 @@ func (h *ProcessSavedEventHandler) generateSendAndSaveNotifications(ctx context.
 	}
 
 	return nil
+}
+
+// Since Firestore actually converts all paths to `slash/separated/strings` it
+// doesn't understand the situation where things `accidently/end/with/a/slash/`
+// as the last element is an empty string. Therefore, we can't save tags that
+// have an empty value associated with them. This doesn't matter right now as we
+// only search by `p` tags which always have a value associated with them.
+//
+// I am putting this in the application layer to make it more explicit.
+func (h *ProcessSavedEventHandler) filterOutEmptyTags(tags []domain.EventTag) []domain.EventTag {
+	var result []domain.EventTag
+	for _, tag := range tags {
+		if !tag.FirstValueIsAnEmptyString() {
+			result = append(result, tag)
+		}
+	}
+	return result
 }
