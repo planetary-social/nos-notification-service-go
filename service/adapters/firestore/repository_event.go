@@ -275,6 +275,8 @@ func (e *EventRepository) loadEvents(ctx context.Context, query firestore.Query,
 			return errors.Wrap(err, "error getting next document")
 		}
 
+		fmt.Println("event doc", doc.CreateTime)
+
 		event, err := e.readEvent(doc)
 		if err != nil {
 			return errors.Wrap(err, "error reading the event")
