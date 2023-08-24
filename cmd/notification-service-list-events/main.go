@@ -121,9 +121,6 @@ func listEvents(ctx context.Context, service di.Service, publicKey domain.Public
 
 	filters, err := domain.NewFilters(nostr.Filters{
 		{
-			//Authors: []string{
-			//	publicKey.Hex(),
-			//},
 			Tags: map[string][]string{
 				"p": {
 					publicKey.Hex(),
