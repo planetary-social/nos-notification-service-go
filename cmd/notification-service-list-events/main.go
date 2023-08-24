@@ -3,12 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+
 	"github.com/boreq/errors"
 	"github.com/nbd-wtf/go-nostr"
 	"github.com/planetary-social/go-notification-service/cmd/notification-service/di"
 	configadapters "github.com/planetary-social/go-notification-service/service/adapters/config"
 	"github.com/planetary-social/go-notification-service/service/domain"
-	"os"
 )
 
 func main() {
@@ -138,7 +139,7 @@ func listEvents(ctx context.Context, service di.Service, publicKey domain.Public
 		fmt.Println("event", evt.Id().Hex(), evt.Kind().Int())
 
 		for _, notification := range notifications {
-			fmt.Println("notification", notification.UUID())
+			fmt.Println("notification", notification.UUID(), "created at", notification.CreatedAt())
 		}
 	}
 
