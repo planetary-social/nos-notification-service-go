@@ -56,10 +56,6 @@ func run() error {
 		return errors.Wrap(err, "error listing APNs tokens")
 	}
 
-	//if err := listRelays(ctx, service, publicKey); err != nil {
-	//	return errors.Wrap(err, "error listing relays")
-	//}
-
 	return nil
 }
 
@@ -79,32 +75,6 @@ func listTokens(ctx context.Context, service di.Service, publicKey domain.Public
 	for _, token := range tokens {
 		tokensSet.Put(token)
 		fmt.Println("token", token.Hex())
-	}
-
-	return nil
-}
-
-func listRelays(ctx context.Context, service di.Service, publicKey domain.PublicKey) error {
-	fmt.Println()
-	fmt.Println("listing relays related to public key", publicKey.Hex())
-
-	relays, err := service.App().Queries.GetRelays.Handle(ctx)
-	if err != nil {
-		return errors.Wrap(err, "error getting relays")
-	}
-
-	for _, relay := range relays {
-		publicKeys, err := service.App().Queries.GetPublicKeys.Handle(ctx, relay)
-		if err != nil {
-			return errors.Wrap(err, "error getting relays")
-		}
-
-		for _, publicKeyForRelay := range publicKeys {
-			if publicKeyForRelay == publicKey {
-				fmt.Println(relay)
-				break
-			}
-		}
 	}
 
 	return nil
