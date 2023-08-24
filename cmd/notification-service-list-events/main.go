@@ -183,8 +183,6 @@ func listEvents(ctx context.Context, service di.Service, publicKey domain.Public
 			fmt.Println("-> own event")
 		}
 
-		//fmt.Println(string(eventWithNotifications.Event.Raw()))
-
 		for _, notification := range eventWithNotifications.Notifications {
 			fmt.Printf("-> notification %s created at %s", notification.UUID(), notification.CreatedAt())
 			if !tokensSet.Contains(notification.APNSToken()) {
