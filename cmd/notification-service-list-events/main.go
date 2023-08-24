@@ -41,6 +41,71 @@ func run() error {
 	}
 	defer cleanup()
 
+	if err := listTokens(ctx, service, publicKey); err != nil {
+		return errors.Wrap(err, "error listing APNs tokens")
+	}
+
+	if err := listEvents(ctx, service, publicKey); err != nil {
+		return errors.Wrap(err, "error listing APNs tokens")
+	}
+
+	if err := listRelays(ctx, service, publicKey); err != nil {
+		return errors.Wrap(err, "error listing relays")
+	}
+
+	return nil
+}
+
+func listTokens(ctx context.Context, service di.Service, publicKey domain.PublicKey) error {
+	fmt.Println()
+	fmt.Println("listing stored APNs tokens related to public key", publicKey.Hex())
+
+	tokens, err := service.App().Queries.GetTokens.Handle(ctx, publicKey)
+	if err != nil {
+		return errors.Wrap(err, "error getting APNs tokens")
+	}
+
+	if len(tokens) == 0 {
+		fmt.Println("no stored tokens")
+	}
+
+	for _, token := range tokens {
+		fmt.Println(token.Hex())
+	}
+
+	return nil
+}
+
+func listRelays(ctx context.Context, service di.Service, publicKey domain.PublicKey) error {
+	fmt.Println()
+	fmt.Println("listing relays related to public key", publicKey.Hex())
+
+	relays, err := service.App().Queries.GetRelays.Handle(ctx)
+	if err != nil {
+		return errors.Wrap(err, "error getting relays")
+	}
+
+	for _, relay := range relays {
+		publicKeys, err := service.App().Queries.GetPublicKeys.Handle(ctx, relay)
+		if err != nil {
+			return errors.Wrap(err, "error getting relays")
+		}
+
+		for _, publicKeyForRelay := range publicKeys {
+			if publicKeyForRelay == publicKey {
+				fmt.Println(relay)
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+func listEvents(ctx context.Context, service di.Service, publicKey domain.PublicKey) error {
+	fmt.Println()
+	fmt.Println("listing stored events related to public key", publicKey.Hex())
+
 	filters, err := domain.NewFilters(nostr.Filters{
 		{
 			Authors: []string{
@@ -59,6 +124,7 @@ func run() error {
 		}
 
 		if v.EOSE() {
+			fmt.Println("end of stored events")
 			break
 		}
 
@@ -69,12 +135,11 @@ func run() error {
 			return errors.Wrapf(err, "error getting notifications for event '%s'", v.Event().Id().Hex())
 		}
 
-		fmt.Println("event", evt.Id().Hex())
+		fmt.Println("event", evt.Id().Hex(), evt.Kind().Int())
 
 		for _, notification := range notifications {
 			fmt.Println("notification", notification.UUID())
 		}
-
 	}
 
 	return nil
