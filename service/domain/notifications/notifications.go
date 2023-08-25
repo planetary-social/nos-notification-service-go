@@ -1,6 +1,8 @@
 package notifications
 
 import (
+	"time"
+
 	"github.com/boreq/errors"
 	"github.com/google/uuid"
 	"github.com/planetary-social/go-notification-service/internal/logging"
@@ -33,7 +35,7 @@ func (g *Generator) Generate(mention domain.PublicKey, token domain.APNSToken, e
 		return nil, errors.Wrap(err, "error generating a notification id")
 	}
 
-	notification, err := NewNotification(event, id, token, payloadJSON)
+	notification, err := NewNotification(event, id, token, payloadJSON, time.Now())
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating a notification")
 	}
@@ -63,9 +65,10 @@ func (g *Generator) mentionedThemself(mention domain.PublicKey, event domain.Eve
 type Notification struct {
 	event domain.Event
 
-	uuid    NotificationUUID
-	token   domain.APNSToken
-	payload []byte
+	uuid      NotificationUUID
+	token     domain.APNSToken
+	payload   []byte
+	createdAt *time.Time // old notifications don't have this value
 }
 
 func NewNotification(
@@ -73,29 +76,37 @@ func NewNotification(
 	uuid NotificationUUID,
 	token domain.APNSToken,
 	payload []byte,
+	createdAt time.Time,
 ) (Notification, error) {
 	if len(payload) == 0 {
 		return Notification{}, errors.New("empty payload")
 	}
 	return Notification{
-		event:   event,
-		uuid:    uuid,
-		token:   token,
-		payload: payload,
+		event:     event,
+		uuid:      uuid,
+		token:     token,
+		payload:   payload,
+		createdAt: &createdAt,
 	}, nil
 }
 
-func MustNewNotification(
+func NewNotificationFromHistory(
 	event domain.Event,
 	uuid NotificationUUID,
 	token domain.APNSToken,
 	payload []byte,
-) Notification {
-	v, err := NewNotification(event, uuid, token, payload)
-	if err != nil {
-		panic(err)
+	createdAt *time.Time,
+) (Notification, error) {
+	if len(payload) == 0 {
+		return Notification{}, errors.New("empty payload")
 	}
-	return v
+	return Notification{
+		event:     event,
+		uuid:      uuid,
+		token:     token,
+		payload:   payload,
+		createdAt: createdAt,
+	}, nil
 }
 
 func (n Notification) Event() domain.Event {
@@ -112,6 +123,10 @@ func (n Notification) APNSToken() domain.APNSToken {
 
 func (n Notification) Payload() []byte {
 	return n.payload
+}
+
+func (n Notification) CreatedAt() *time.Time {
+	return n.createdAt
 }
 
 type NotificationUUID struct {

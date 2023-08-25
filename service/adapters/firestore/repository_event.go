@@ -2,7 +2,6 @@ package firestore
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"cloud.google.com/go/firestore"
@@ -25,9 +24,10 @@ const (
 	eventFieldKind      = "kind"
 	eventFieldRaw       = "raw"
 
-	eventNotificationUUID    = "uuid"
-	eventNotificationToken   = "token"
-	eventNotificationPayload = "payload"
+	eventNotificationUUID      = "uuid"
+	eventNotificationToken     = "token"
+	eventNotificationPayload   = "payload"
+	eventNotificationCreatedAt = "createdAt"
 )
 
 type EventRepository struct {
@@ -91,10 +91,16 @@ func (e *EventRepository) SaveNotificationForEvent(notification notifications.No
 		Collection(collectionEventsNotifications).
 		Doc(notification.UUID().String())
 
+	createdAt := notification.CreatedAt()
+	if createdAt == nil {
+		return errors.New("new notifications should always have the createdAt value populated")
+	}
+
 	notificationDocData := map[string]any{
-		eventNotificationUUID:    ensureType[string](notification.UUID().String()),
-		eventNotificationToken:   ensureType[string](notification.APNSToken().Hex()),
-		eventNotificationPayload: ensureType[[]byte](notification.Payload()),
+		eventNotificationUUID:      ensureType[string](notification.UUID().String()),
+		eventNotificationToken:     ensureType[string](notification.APNSToken().Hex()),
+		eventNotificationPayload:   ensureType[[]byte](notification.Payload()),
+		eventNotificationCreatedAt: ensureType[time.Time](*createdAt),
 	}
 
 	if err := e.tx.Set(notificationDocPath, notificationDocData, firestore.MergeAll); err != nil {
@@ -160,8 +166,6 @@ func (e *EventRepository) GetNotifications(ctx context.Context, id domain.EventI
 			}
 		}
 
-		fmt.Println("create time", doc.CreateTime)
-
 		data := make(map[string]any)
 		if err := doc.DataTo(&data); err != nil {
 			return nil, errors.Wrap(err, "error getting doc data")
@@ -177,7 +181,18 @@ func (e *EventRepository) GetNotifications(ctx context.Context, id domain.EventI
 			return nil, errors.Wrap(err, "error creating a token")
 		}
 
-		notification, err := notifications.NewNotification(event, uuid, token, data[eventNotificationPayload].([]byte))
+		var createdAt *time.Time
+		if loadedCreatedAt, ok := data[eventNotificationCreatedAt].(time.Time); ok {
+			createdAt = &loadedCreatedAt
+		}
+
+		notification, err := notifications.NewNotificationFromHistory(
+			event,
+			uuid,
+			token,
+			data[eventNotificationPayload].([]byte),
+			createdAt,
+		)
 		if err != nil {
 			return nil, errors.Wrap(err, "error creating a notification")
 		}

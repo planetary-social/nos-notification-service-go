@@ -5,6 +5,7 @@ import (
 
 	"github.com/boreq/errors"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"github.com/nbd-wtf/go-nostr/nip19"
 )
 
 type PublicKey struct {
@@ -23,6 +24,19 @@ func NewPublicKeyFromHex(s string) (PublicKey, error) {
 
 	s = hex.EncodeToString(b)
 	return PublicKey{s}, nil
+}
+
+func NewPublicKeyFromNpub(s string) (PublicKey, error) {
+	prefix, hexString, err := nip19.Decode(s)
+	if err != nil {
+		return PublicKey{}, errors.Wrap(err, "error decoding a nip19 entity")
+	}
+
+	if prefix != "npub" {
+		return PublicKey{}, errors.New("passed something which isn't an npub")
+	}
+
+	return NewPublicKeyFromHex(hexString.(string))
 }
 
 func (k PublicKey) Hex() string {
