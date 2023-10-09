@@ -14,15 +14,17 @@ import (
 const (
 	envPrefix = "NOTIFICATIONS"
 
-	envNostrListenAddress           = "NOSTR_LISTEN_ADDRESS"
-	envMetricsListenAddress         = "METRICS_LISTEN_ADDRESS"
-	envFirestoreProjectID           = "FIRESTORE_PROJECT_ID"
-	envFirestoreCredentialsJSONPath = "FIRESTORE_CREDENTIALS_JSON_PATH"
-	envAPNSTopic                    = "APNS_TOPIC"
-	envAPNSCertificatePath          = "APNS_CERTIFICATE_PATH"
-	envAPNSCertificatePassword      = "APNS_CERTIFICATE_PASSWORD"
-	envEnvironment                  = "ENVIRONMENT"
-	envLogLevel                     = "LOG_LEVEL"
+	envNostrListenAddress              = "NOSTR_LISTEN_ADDRESS"
+	envMetricsListenAddress            = "METRICS_LISTEN_ADDRESS"
+	envFirestoreProjectID              = "FIRESTORE_PROJECT_ID"
+	envFirestoreCredentialsJSONPath    = "FIRESTORE_CREDENTIALS_JSON_PATH"
+	envAPNSTopic                       = "APNS_TOPIC"
+	envAPNSCertificatePath             = "APNS_CERTIFICATE_PATH"
+	envAPNSCertificatePassword         = "APNS_CERTIFICATE_PASSWORD"
+	envEnvironment                     = "ENVIRONMENT"
+	envLogLevel                        = "LOG_LEVEL"
+	envGooglePubsubProjectID           = "GOOGLE_PUBSUB_PROJECT_ID"
+	envGooglePubsubCredentialsJSONPath = "GOOGLE_PUBSUB_CREDENTIALS_JSON_PATH"
 )
 
 type EnvironmentConfigLoader struct {
@@ -47,12 +49,27 @@ func (c *EnvironmentConfigLoader) Load() (config.Config, error) {
 	if p := c.getenv(envFirestoreCredentialsJSONPath); p != "" {
 		f, err := os.Open(p)
 		if err != nil {
-			return config.Config{}, errors.Wrap(err, "error opening the credentials file")
+			return config.Config{}, errors.Wrap(err, "error opening the firestore credentials file")
 		}
 
 		b, err := io.ReadAll(f)
 		if err != nil {
-			return config.Config{}, errors.Wrap(err, "error reading the credentials file")
+			return config.Config{}, errors.Wrap(err, "error reading the firestore credentials file")
+		}
+
+		firestoreCredentialsJSON = b
+	}
+
+	var googlePubSubCredentialsJSON []byte
+	if p := c.getenv(envGooglePubsubCredentialsJSONPath); p != "" {
+		f, err := os.Open(p)
+		if err != nil {
+			return config.Config{}, errors.Wrap(err, "error opening the pubsub credentials file")
+		}
+
+		b, err := io.ReadAll(f)
+		if err != nil {
+			return config.Config{}, errors.Wrap(err, "error reading the pubsub credentials file")
 		}
 
 		firestoreCredentialsJSON = b
@@ -68,6 +85,8 @@ func (c *EnvironmentConfigLoader) Load() (config.Config, error) {
 		c.getenv(envAPNSCertificatePassword),
 		environment,
 		logLevel,
+		c.getenv(envGooglePubsubProjectID),
+		googlePubSubCredentialsJSON,
 	)
 }
 

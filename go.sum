@@ -24,6 +24,8 @@ github.com/ThreeDotsLabs/watermill v1.3.1 h1:Fm+K9soLPEO/N2U90OkdwoyrIm4X8YsCDPx
 github.com/ThreeDotsLabs/watermill v1.3.1/go.mod h1:zn/7F0TGOr1K/RX7bFbVxii6p1abOMLllAMpVpKinQg=
 github.com/ThreeDotsLabs/watermill-firestore v0.2.4 h1:iat9s5wMlg0zwp06dMrraHheAy0yQsRE9G98EA3IMMc=
 github.com/ThreeDotsLabs/watermill-firestore v0.2.4/go.mod h1:woFofiCWUFgHsEJXQIG8iaxbFStY0Ho/hWY0qpAurQg=
+github.com/ThreeDotsLabs/watermill-googlecloud v1.0.13 h1:MueV70SYuc9lt0XeJaVlR4Y1MzlMcZsZa/pOqsMx09I=
+github.com/ThreeDotsLabs/watermill-googlecloud v1.0.13/go.mod h1:HfJGTfrFonSoztBGy4RGFlRXy6I8Fa0op50Yno6buJI=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=

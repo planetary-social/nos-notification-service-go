@@ -52,6 +52,10 @@ type Publisher interface {
 	PublishEventSaved(ctx context.Context, id domain.EventId) error
 }
 
+type ExternalEventPublisher interface {
+	PublishNewEventReceived(ctx context.Context, event domain.Event) error
+}
+
 type Application struct {
 	Commands Commands
 	Queries  Queries

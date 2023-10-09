@@ -29,6 +29,9 @@ type Config struct {
 
 	environment Environment
 	logLevel    logging.Level
+
+	googlePubSubProjectID       string
+	googlePubSubCredentialsJSON []byte
 }
 
 func NewConfig(
@@ -41,17 +44,21 @@ func NewConfig(
 	apnsCertificatePassword string,
 	environment Environment,
 	logLevel logging.Level,
+	googlePubSubProjectID string,
+	googlePubSubCredentialsJSON []byte,
 ) (Config, error) {
 	c := Config{
-		nostrListenAddress:       nostrListenAddress,
-		metricsListenAddress:     metricsListenAddress,
-		firestoreProjectID:       firestoreProjectID,
-		firestoreCredentialsJSON: firestoreCredentialsJSON,
-		apnsTopic:                apnsTopic,
-		apnsCertificatePath:      apnsCertificatePath,
-		apnsCertificatePassword:  apnsCertificatePassword,
-		environment:              environment,
-		logLevel:                 logLevel,
+		nostrListenAddress:          nostrListenAddress,
+		metricsListenAddress:        metricsListenAddress,
+		firestoreProjectID:          firestoreProjectID,
+		firestoreCredentialsJSON:    firestoreCredentialsJSON,
+		apnsTopic:                   apnsTopic,
+		apnsCertificatePath:         apnsCertificatePath,
+		apnsCertificatePassword:     apnsCertificatePassword,
+		environment:                 environment,
+		logLevel:                    logLevel,
+		googlePubSubProjectID:       googlePubSubProjectID,
+		googlePubSubCredentialsJSON: googlePubSubCredentialsJSON,
 	}
 
 	c.setDefaults()
@@ -98,6 +105,14 @@ func (c *Config) LogLevel() logging.Level {
 	return c.logLevel
 }
 
+func (c *Config) GooglePubSubProjectID() string {
+	return c.googlePubSubProjectID
+}
+
+func (c *Config) GooglePubSubCredentialsJSON() []byte {
+	return c.googlePubSubCredentialsJSON
+}
+
 func (c *Config) setDefaults() {
 	if c.nostrListenAddress == "" {
 		c.nostrListenAddress = ":8008"
@@ -134,6 +149,10 @@ func (c *Config) validate() error {
 	case EnvironmentDevelopment:
 	default:
 		return fmt.Errorf("unknown environment '%+v'", c.environment)
+	}
+
+	if c.googlePubSubProjectID == "" {
+		return errors.New("missing google pub sub project id")
 	}
 
 	return nil

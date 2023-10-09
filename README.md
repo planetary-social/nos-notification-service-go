@@ -73,6 +73,14 @@ Log level.
 
 Optional, can be set to `TRACE`, `DEBUG`, `ERROR` or `DISABLED`. Defaults to `DEBUG`.
 
+### `NOTIFICATIONS_GOOGLE_PUBSUB_PROJECT_ID`
+
+Required, project ID used for Google Cloud Pubsub.
+
+### `GOOGLE_PUBSUB_CREDENTIALS_JSON_PATH`
+
+Path to your Google Cloud credentials JSON file.
+
 ### `FIRESTORE_EMULATOR_HOST`
 
 Optional, this is used by the Firestore libraries and can be useful for testing
