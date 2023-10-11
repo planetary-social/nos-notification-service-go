@@ -23,6 +23,7 @@ const (
 	envAPNSCertificatePassword         = "APNS_CERTIFICATE_PASSWORD"
 	envEnvironment                     = "ENVIRONMENT"
 	envLogLevel                        = "LOG_LEVEL"
+	envGooglePubsubEnabled             = "GOOGLE_PUBSUB_ENABLED"
 	envGooglePubsubProjectID           = "GOOGLE_PUBSUB_PROJECT_ID"
 	envGooglePubsubCredentialsJSONPath = "GOOGLE_PUBSUB_CREDENTIALS_JSON_PATH"
 )
@@ -75,6 +76,11 @@ func (c *EnvironmentConfigLoader) Load() (config.Config, error) {
 		googlePubSubCredentialsJSON = b
 	}
 
+	googlePubSubEnabled, err := c.getenvbool(envGooglePubsubEnabled)
+	if err != nil {
+		return config.Config{}, errors.Wrapf(err, "error loading variable '%s'", envGooglePubsubEnabled)
+	}
+
 	return config.NewConfig(
 		c.getenv(envNostrListenAddress),
 		c.getenv(envMetricsListenAddress),
@@ -85,6 +91,7 @@ func (c *EnvironmentConfigLoader) Load() (config.Config, error) {
 		c.getenv(envAPNSCertificatePassword),
 		environment,
 		logLevel,
+		googlePubSubEnabled,
 		c.getenv(envGooglePubsubProjectID),
 		googlePubSubCredentialsJSON,
 	)
@@ -124,4 +131,17 @@ func (c *EnvironmentConfigLoader) loadLogLevel() (logging.Level, error) {
 
 func (c *EnvironmentConfigLoader) getenv(key string) string {
 	return os.Getenv(fmt.Sprintf("%s_%s", envPrefix, key))
+}
+
+func (c *EnvironmentConfigLoader) getenvbool(key string) (bool, error) {
+	switch v := strings.ToUpper(c.getenv(key)); v {
+	case "":
+		return false, nil
+	case "TRUE":
+		return true, nil
+	case "FALSE":
+		return false, nil
+	default:
+		return false, fmt.Errorf("unknow value '%s'", v)
+	}
 }

@@ -30,6 +30,7 @@ type Config struct {
 	environment Environment
 	logLevel    logging.Level
 
+	googlePubSubEnabled         bool
 	googlePubSubProjectID       string
 	googlePubSubCredentialsJSON []byte
 }
@@ -44,6 +45,7 @@ func NewConfig(
 	apnsCertificatePassword string,
 	environment Environment,
 	logLevel logging.Level,
+	googlePubSubEnabled bool,
 	googlePubSubProjectID string,
 	googlePubSubCredentialsJSON []byte,
 ) (Config, error) {
@@ -57,6 +59,7 @@ func NewConfig(
 		apnsCertificatePassword:     apnsCertificatePassword,
 		environment:                 environment,
 		logLevel:                    logLevel,
+		googlePubSubEnabled:         googlePubSubEnabled,
 		googlePubSubProjectID:       googlePubSubProjectID,
 		googlePubSubCredentialsJSON: googlePubSubCredentialsJSON,
 	}
@@ -105,6 +108,10 @@ func (c *Config) LogLevel() logging.Level {
 	return c.logLevel
 }
 
+func (c *Config) GooglePubSubEnabled() bool {
+	return c.googlePubSubEnabled
+}
+
 func (c *Config) GooglePubSubProjectID() string {
 	return c.googlePubSubProjectID
 }
@@ -151,8 +158,14 @@ func (c *Config) validate() error {
 		return fmt.Errorf("unknown environment '%+v'", c.environment)
 	}
 
-	if c.googlePubSubProjectID == "" {
-		return errors.New("missing google pub sub project id")
+	if c.googlePubSubEnabled {
+		if c.googlePubSubProjectID == "" {
+			return errors.New("missing google pub sub project id")
+		}
+
+		if len(c.googlePubSubCredentialsJSON) == 0 {
+			return errors.New("missing google pub sub credentials json")
+		}
 	}
 
 	return nil

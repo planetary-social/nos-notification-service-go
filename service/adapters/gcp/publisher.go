@@ -21,8 +21,9 @@ func NewWatermillPublisher(config config.Config, logger watermill.LoggerAdapter)
 	}
 
 	publisherConfig := googlecloud.PublisherConfig{
-		ProjectID:     config.GooglePubSubProjectID(),
-		ClientOptions: options,
+		ProjectID:                 config.GooglePubSubProjectID(),
+		DoNotCreateTopicIfMissing: true,
+		ClientOptions:             options,
 	}
 
 	return googlecloud.NewPublisher(publisherConfig, logger)

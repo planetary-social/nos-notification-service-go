@@ -16,7 +16,6 @@ import (
 	"github.com/planetary-social/go-notification-service/service/adapters"
 	"github.com/planetary-social/go-notification-service/service/adapters/apns"
 	"github.com/planetary-social/go-notification-service/service/adapters/firestore"
-	"github.com/planetary-social/go-notification-service/service/adapters/gcp"
 	"github.com/planetary-social/go-notification-service/service/adapters/mocks"
 	"github.com/planetary-social/go-notification-service/service/adapters/prometheus"
 	"github.com/planetary-social/go-notification-service/service/adapters/pubsub"
@@ -89,13 +88,12 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 		cleanup()
 		return Service{}, nil, err
 	}
-	publisher, err := gcp.NewWatermillPublisher(configConfig, watermillAdapter)
+	externalEventPublisher, err := newExternalEventPublisher(configConfig, watermillAdapter)
 	if err != nil {
 		cleanup()
 		return Service{}, nil, err
 	}
-	gcpPublisher := gcp.NewPublisher(publisher)
-	processSavedEventHandler := app.NewProcessSavedEventHandler(transactionProvider, generator, apnsAPNS, logger, prometheusPrometheus, gcpPublisher)
+	processSavedEventHandler := app.NewProcessSavedEventHandler(transactionProvider, generator, apnsAPNS, logger, prometheusPrometheus, externalEventPublisher)
 	eventSavedSubscriber := firestorepubsub.NewEventSavedSubscriber(subscriber, processSavedEventHandler, prometheusPrometheus, logger)
 	service := NewService(application, server, metricsServer, downloader, receivedEventSubscriber, eventSavedSubscriber, memoryEventWasAlreadySavedCache)
 	return service, func() {
