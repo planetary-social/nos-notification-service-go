@@ -72,7 +72,7 @@ func (c *EnvironmentConfigLoader) Load() (config.Config, error) {
 			return config.Config{}, errors.Wrap(err, "error reading the pubsub credentials file")
 		}
 
-		firestoreCredentialsJSON = b
+		googlePubSubCredentialsJSON = b
 	}
 
 	return config.NewConfig(
