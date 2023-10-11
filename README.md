@@ -73,6 +73,21 @@ Log level.
 
 Optional, can be set to `TRACE`, `DEBUG`, `ERROR` or `DISABLED`. Defaults to `DEBUG`.
 
+### `NOTIFICATIONS_GOOGLE_PUBSUB_ENABLED`
+
+Optional, defaults to false. If set needs to be either `true` or `false`.
+Specifies if Google pubsub events are generated.
+
+### `NOTIFICATIONS_GOOGLE_PUBSUB_PROJECT_ID`
+
+Required, project ID used for Google Cloud Pubsub. Relevant only when
+`NOTIFICATIONS_GOOGLE_PUBSUB_ENABLED` is set to true.
+
+### `GOOGLE_PUBSUB_CREDENTIALS_JSON_PATH`
+
+Path to your Google Cloud credentials JSON file. Relevant only when
+`NOTIFICATIONS_GOOGLE_PUBSUB_ENABLED` is set to true.
+
 ### `FIRESTORE_EMULATOR_HOST`
 
 Optional, this is used by the Firestore libraries and can be useful for testing

@@ -28,11 +28,12 @@ func NewProcessSavedEvent(eventId domain.EventId) ProcessSavedEvent {
 }
 
 type ProcessSavedEventHandler struct {
-	transactionProvider TransactionProvider
-	generator           *notifications.Generator
-	apns                APNS
-	logger              logging.Logger
-	metrics             Metrics
+	transactionProvider    TransactionProvider
+	generator              *notifications.Generator
+	apns                   APNS
+	logger                 logging.Logger
+	metrics                Metrics
+	externalEventPublisher ExternalEventPublisher
 }
 
 func NewProcessSavedEventHandler(
@@ -41,13 +42,15 @@ func NewProcessSavedEventHandler(
 	apns APNS,
 	logger logging.Logger,
 	metrics Metrics,
+	externalEventPublisher ExternalEventPublisher,
 ) *ProcessSavedEventHandler {
 	return &ProcessSavedEventHandler{
-		transactionProvider: transactionProvider,
-		generator:           generator,
-		apns:                apns,
-		logger:              logger.New("processSavedEventHandler"),
-		metrics:             metrics,
+		transactionProvider:    transactionProvider,
+		generator:              generator,
+		apns:                   apns,
+		logger:                 logger.New("processSavedEventHandler"),
+		metrics:                metrics,
+		externalEventPublisher: externalEventPublisher,
 	}
 }
 
@@ -71,6 +74,10 @@ func (h *ProcessSavedEventHandler) Handle(ctx context.Context, cmd ProcessSavedE
 		if err := h.generateSendAndSaveNotifications(ctx, event, logger); err != nil {
 			return errors.Wrap(err, "error saving notifications")
 		}
+	}
+
+	if err := h.externalEventPublisher.PublishNewEventReceived(ctx, event); err != nil {
+		return errors.Wrap(err, "error publishing using external publisher")
 	}
 
 	return nil
