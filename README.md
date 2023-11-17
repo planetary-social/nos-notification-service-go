@@ -83,7 +83,7 @@ Specifies if Google pubsub events are generated.
 Required, project ID used for Google Cloud Pubsub. Relevant only when
 `NOTIFICATIONS_GOOGLE_PUBSUB_ENABLED` is set to true.
 
-### `GOOGLE_PUBSUB_CREDENTIALS_JSON_PATH`
+### `NOTIFICATIONS_GOOGLE_PUBSUB_CREDENTIALS_JSON_PATH`
 
 Path to your Google Cloud credentials JSON file. Relevant only when
 `NOTIFICATIONS_GOOGLE_PUBSUB_ENABLED` is set to true.
