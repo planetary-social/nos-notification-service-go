@@ -268,3 +268,9 @@ flowchart TB
 [effective-go]: http://golang.org/doc/effective_go.html
 [code-review-comments]: https://github.com/golang/go/wiki/CodeReviewComments
 [uber-style-guide]: https://github.com/uber-go/guide/blob/master/style.md
+
+
+## Deployment
+
+We deploy this service using [ansible](https://github.com/planetary-social/ansible-scripts).  The steps for deployment can be read in our [internal notion page](https://www.notion.so/nossocial/Deploying-services-via-Ansible-2b8d01a60d2441e197d4e03d3274c9ef?pvs=4).
+
