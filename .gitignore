@@ -5,3 +5,4 @@
 *.p12
 # don't commit firestore certs (which usually follow this pattern)
 nos-notification-service-*.json
+.direnv
