@@ -57,6 +57,9 @@ func (s *Server) createMux(ctx context.Context) *http.ServeMux {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		s.serveWs(ctx, w, r)
 	})
+	mux.HandleFunc("/_health", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "ok\n")
+	})
 	return mux
 }
 
