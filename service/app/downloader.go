@@ -338,6 +338,8 @@ func (d *RelayDownloader) manageSubs(
 	}
 }
 
+// For each pubkey for which we don't have an active nostr REQ, create a new REQ
+// For each pubkey for which we do have and active nostr REQ but it's not in the list, close it
 func (d *RelayDownloader) updateSubs(
 	conn *websocket.Conn,
 	activeSubscriptions *internal.Set[domain.PublicKey],
