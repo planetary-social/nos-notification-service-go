@@ -3,6 +3,7 @@ package firestore
 import (
 	"context"
 	"encoding/hex"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/firestore"
@@ -10,6 +11,14 @@ import (
 	"github.com/planetary-social/go-notification-service/service/domain"
 	"google.golang.org/api/iterator"
 )
+
+var relaySuffixesToSkip = []string{
+	"127.0.0.1",
+	"localhost",
+	"nostr.band",
+	"nostrja-kari-nip50.heguro.com",
+	"nostr.sebastix.social",
+}
 
 const (
 	collectionRelays                      = "relays"
@@ -75,10 +84,24 @@ func (r *RelayRepository) GetRelays(ctx context.Context, updatedAfter time.Time)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error creating a relay address from key '%s'", docRef.Ref.ID)
 		}
-		result = append(result, relayAddress)
+
+		if !endsWithAny(relayAddress.HostWithoutPort(), relaySuffixesToSkip) {
+			result = append(result, relayAddress)
+		}
 	}
 
 	return result, nil
+}
+
+// endsWithAny checks if the given string ends with any of the strings in the
+// list.
+func endsWithAny(s string, list []string) bool {
+	for _, suffix := range list {
+		if strings.HasSuffix(s, suffix) {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *RelayRepository) GetPublicKeys(ctx context.Context, address domain.RelayAddress, updatedAfter time.Time) ([]domain.PublicKey, error) {

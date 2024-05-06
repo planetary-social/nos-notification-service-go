@@ -2,6 +2,8 @@ package domain
 
 import (
 	"encoding/json"
+	"net"
+	"net/url"
 	"strings"
 
 	"github.com/boreq/errors"
@@ -77,7 +79,8 @@ func (p Registration) Relays() []RelayAddress {
 }
 
 type RelayAddress struct {
-	s string
+	s               string
+	hostWithoutPort string
 }
 
 func NewRelayAddress(s string) (RelayAddress, error) {
@@ -85,12 +88,37 @@ func NewRelayAddress(s string) (RelayAddress, error) {
 		return RelayAddress{}, errors.New("invalid protocol")
 	}
 
-	// todo validate
-	return RelayAddress{s: s}, nil
+	s = strings.TrimSpace(s)
+	s = strings.TrimRight(s, "/")
+
+	u, err := url.Parse(s)
+	if err != nil {
+		return RelayAddress{}, errors.Wrap(err, "url parse error")
+	}
+
+	if u.Scheme != "ws" && u.Scheme != "wss" {
+		return RelayAddress{}, errors.New("invalid protocol")
+	}
+
+	u.Host = strings.ToLower(u.Host)
+	hostWithoutPort, _, err := net.SplitHostPort(u.Host)
+	if err != nil {
+		hostWithoutPort = u.Host
+	}
+	normalizedURI := u.String()
+
+	return RelayAddress{
+		s:               normalizedURI,
+		hostWithoutPort: hostWithoutPort,
+	}, nil
 }
 
 func (r RelayAddress) String() string {
 	return r.s
+}
+
+func (r RelayAddress) HostWithoutPort() string {
+	return r.hostWithoutPort
 }
 
 type registrationTransport struct {
