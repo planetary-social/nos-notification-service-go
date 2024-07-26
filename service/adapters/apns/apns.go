@@ -59,7 +59,7 @@ func (a *APNS) SendNotification(notification notifications.Notification) error {
 	n.Priority = apns2.PriorityLow
 
 	resp, err := a.client.Push(n)
-	a.metrics.ReportCallToAPNS(resp.StatusCode, err)
+	//a.metrics.ReportCallToAPNS(resp.StatusCode, err)
 	if err != nil {
 		return errors.Wrap(err, "error pushing the notification")
 	}
