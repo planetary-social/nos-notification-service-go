@@ -272,5 +272,16 @@ flowchart TB
 
 ## Deployment
 
-We deploy this service using [ansible](https://github.com/planetary-social/ansible-scripts).  The steps for deployment can be read in our [internal notion page](https://www.notion.so/nossocial/Deploying-services-via-Ansible-2b8d01a60d2441e197d4e03d3274c9ef?pvs=4).
+1. **Obtain a Github Token:**
+   Follow the instructions in the [GitHub documentation](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry) to get a personal access token (classic).
 
+2. **Log in to GitHub Container Registry:**
+   ```sh
+   echo \$CR_PAT | docker login ghcr.io -u \$GITHUB_USERNAME --password-stdin
+   ```
+
+3. **Tag the Image:**
+   Tag the image with the `stable` tag as described in the [GitHub documentation](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry).
+
+4. **Trigger the Image Update Process:**
+   The image update process checks for new tags every 3 minutes. Therefore, you should see the new image deployed in approximately 5 minutes.
