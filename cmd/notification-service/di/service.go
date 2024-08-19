@@ -13,13 +13,15 @@ import (
 )
 
 type Service struct {
-	app                       app.Application
-	server                    http.Server
-	metricsServer             http.MetricsServer
-	downloader                *app.Downloader
-	receivedEventSubscriber   *memorypubsub.ReceivedEventSubscriber
-	eventSavedSubscriber      *firestorepubsub.EventSavedSubscriber
-	eventWasAlreadySavedCache *adapters.MemoryEventWasAlreadySavedCache
+	app                            app.Application
+	server                         http.Server
+	metricsServer                  http.MetricsServer
+	downloader                     *app.Downloader
+	followChangePuller             *app.FollowChangePuller
+	receivedEventSubscriber        *memorypubsub.ReceivedEventSubscriber
+	externalFollowChangeSubscriber app.ExternalFollowChangeSubscriber
+	eventSavedSubscriber           *firestorepubsub.EventSavedSubscriber
+	eventWasAlreadySavedCache      *adapters.MemoryEventWasAlreadySavedCache
 }
 
 func NewService(
@@ -27,18 +29,22 @@ func NewService(
 	server http.Server,
 	metricsServer http.MetricsServer,
 	downloader *app.Downloader,
+	followChangePuller *app.FollowChangePuller,
 	receivedEventSubscriber *memorypubsub.ReceivedEventSubscriber,
+	externalFollowChangeSubscriber app.ExternalFollowChangeSubscriber,
 	eventSavedSubscriber *firestorepubsub.EventSavedSubscriber,
 	eventWasAlreadySavedCache *adapters.MemoryEventWasAlreadySavedCache,
 ) Service {
 	return Service{
-		app:                       app,
-		server:                    server,
-		metricsServer:             metricsServer,
-		downloader:                downloader,
-		receivedEventSubscriber:   receivedEventSubscriber,
-		eventSavedSubscriber:      eventSavedSubscriber,
-		eventWasAlreadySavedCache: eventWasAlreadySavedCache,
+		app:                            app,
+		server:                         server,
+		metricsServer:                  metricsServer,
+		downloader:                     downloader,
+		followChangePuller:             followChangePuller,
+		receivedEventSubscriber:        receivedEventSubscriber,
+		externalFollowChangeSubscriber: externalFollowChangeSubscriber,
+		eventSavedSubscriber:           eventSavedSubscriber,
+		eventWasAlreadySavedCache:      eventWasAlreadySavedCache,
 	}
 }
 
@@ -71,6 +77,10 @@ func (s Service) Run(ctx context.Context) error {
 	runners++
 	go func() {
 		errCh <- errors.Wrap(s.receivedEventSubscriber.Run(ctx), "received event subscriber error")
+	}()
+
+	go func() {
+		errCh <- errors.Wrap(s.followChangePuller.Run(ctx), "follow change subscriber error")
 	}()
 
 	runners++

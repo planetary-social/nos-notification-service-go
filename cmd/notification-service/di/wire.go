@@ -29,6 +29,7 @@ func BuildService(context.Context, config.Config) (Service, func(), error) {
 		googlePubsubSet,
 		loggingSet,
 		adaptersSet,
+		followChangePullerSet,
 	)
 	return Service{}, nil, nil
 }
@@ -49,13 +50,16 @@ func BuildIntegrationService(context.Context, config.Config) (IntegrationService
 		applicationSet,
 		firestoreAdaptersSet,
 		downloaderSet,
+		followChangePullerSet,
 		generatorSet,
 		pubsubSet,
 		loggingSet,
 		integrationAdaptersSet,
 
 		mocks.NewMockExternalEventPublisher,
+		mocks.NewMockExternalFollowChangeSubscriber,
 		wire.Bind(new(app.ExternalEventPublisher), new(*mocks.MockExternalEventPublisher)),
+		wire.Bind(new(app.ExternalFollowChangeSubscriber), new(*mocks.MockExternalFollowChangeSubscriber)),
 	)
 	return IntegrationService{}, nil, nil
 }
@@ -77,6 +81,10 @@ func buildTransactionFirestoreAdapters(client *googlefirestore.Client, tx *googl
 
 var downloaderSet = wire.NewSet(
 	app.NewDownloader,
+)
+
+var followChangePullerSet = wire.NewSet(
+	app.NewFollowChangePuller,
 )
 
 var generatorSet = wire.NewSet(

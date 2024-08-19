@@ -56,6 +56,10 @@ type ExternalEventPublisher interface {
 	PublishNewEventReceived(ctx context.Context, event domain.Event) error
 }
 
+type ExternalFollowChangeSubscriber interface {
+	Subscribe(ctx context.Context) (<-chan *domain.FollowChange, error)
+}
+
 type Application struct {
 	Commands Commands
 	Queries  Queries
@@ -123,6 +127,7 @@ type ReceivedEventSubscriber interface {
 type Metrics interface {
 	StartApplicationCall(handlerName string) ApplicationCall
 	MeasureRelayDownloadersState(n int, state RelayDownloaderState)
+	MeasureFollowChange(n int)
 }
 
 type ApplicationCall interface {
