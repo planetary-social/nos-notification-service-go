@@ -15,6 +15,7 @@ import (
 const (
 	labelHandlerName          = "handlerName"
 	labelRelayDownloaderState = "state"
+	labelFollowChanges        = "follow changes"
 	labelTopic                = "topic"
 	labelVcsRevision          = "vcsRevision"
 	labelVcsTime              = "vcsTime"
@@ -32,6 +33,7 @@ type Prometheus struct {
 	applicationHandlerCallsCounter          *prometheus.CounterVec
 	applicationHandlerCallDurationHistogram *prometheus.HistogramVec
 	relayDownloaderStateGauge               *prometheus.GaugeVec
+	relayFollowChangeGauge                  prometheus.Counter
 	subscriptionQueueLengthGauge            *prometheus.GaugeVec
 	apnsCallsCounter                        *prometheus.CounterVec
 
@@ -62,6 +64,12 @@ func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
 		},
 		[]string{labelRelayDownloaderState},
 	)
+	relayFollowChangeGauge := prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "follow_change_count",
+			Help: "Number of follow changes.",
+		},
+	)
 	subscriptionQueueLengthGauge := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "subscription_queue_length",
@@ -89,6 +97,7 @@ func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
 		applicationHandlerCallsCounter,
 		applicationHandlerCallDurationHistogram,
 		relayDownloaderStateGauge,
+		relayFollowChangeGauge,
 		subscriptionQueueLengthGauge,
 		versionGague,
 		apnsCallsCounter,
@@ -118,6 +127,7 @@ func NewPrometheus(logger logging.Logger) (*Prometheus, error) {
 		applicationHandlerCallsCounter:          applicationHandlerCallsCounter,
 		applicationHandlerCallDurationHistogram: applicationHandlerCallDurationHistogram,
 		relayDownloaderStateGauge:               relayDownloaderStateGauge,
+		relayFollowChangeGauge:                  relayFollowChangeGauge,
 		subscriptionQueueLengthGauge:            subscriptionQueueLengthGauge,
 		apnsCallsCounter:                        apnsCallsCounter,
 
@@ -133,6 +143,10 @@ func (p *Prometheus) StartApplicationCall(handlerName string) app.ApplicationCal
 
 func (p *Prometheus) MeasureRelayDownloadersState(n int, state app.RelayDownloaderState) {
 	p.relayDownloaderStateGauge.With(prometheus.Labels{labelRelayDownloaderState: state.String()}).Set(float64(n))
+}
+
+func (p *Prometheus) MeasureFollowChange(n int) {
+	p.relayFollowChangeGauge.Add(float64(n))
 }
 
 func (p *Prometheus) ReportSubscriptionQueueLength(topic string, n int) {

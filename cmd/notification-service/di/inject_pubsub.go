@@ -18,6 +18,7 @@ var pubsubSet = wire.NewSet(
 
 var googlePubsubSet = wire.NewSet(
 	newExternalEventPublisher,
+	newExternalFollowChangeSubscriber,
 )
 
 func newExternalEventPublisher(config config.Config, logger watermill.LoggerAdapter) (app.ExternalEventPublisher, error) {
@@ -29,5 +30,17 @@ func newExternalEventPublisher(config config.Config, logger watermill.LoggerAdap
 		return gcp.NewPublisher(publisher), nil
 	} else {
 		return gcp.NewNoopPublisher(), nil
+	}
+}
+
+func newExternalFollowChangeSubscriber(config config.Config, logger watermill.LoggerAdapter) (app.ExternalFollowChangeSubscriber, error) {
+	if config.GooglePubSubEnabled() {
+		subscriber, err := gcp.NewWatermillSubscriber(config, logger)
+		if err != nil {
+			return nil, errors.Wrap(err, "error creating a watermil subscriber")
+		}
+		return gcp.NewFollowChangeSubscriber(subscriber, logger), nil
+	} else {
+		return gcp.NewNoopSubscriber(), nil
 	}
 }
