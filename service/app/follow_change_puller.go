@@ -36,7 +36,8 @@ func (f *FollowChangePuller) Run(ctx context.Context) error {
 	}
 
 	for followChange := range ch {
-		f.logger.Debug().WithField("followChange", followChange).Message("received follow change")
+		f.logger.Debug().Message(followChange.String())
+
 		f.counter += 1
 	}
 

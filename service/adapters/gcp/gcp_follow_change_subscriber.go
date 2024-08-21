@@ -47,17 +47,15 @@ func (p *GCPFollowChangeSubscriber) Subscribe(ctx context.Context) (<-chan *doma
 
 	ch := make(chan *domain.FollowChange)
 
-	defer func() {
-		close(ch)
-		p.subscriber.Close()
-	}()
-
 	go func() {
-		var payload domain.FollowChange
+		defer close(ch)
+		defer p.subscriber.Close()
+
 		for message := range subChan {
 			// We never retry messages so we can ACK immediately.
 			message.Ack()
 
+			var payload domain.FollowChange
 			if err := json.Unmarshal(message.Payload, &payload); err != nil {
 				p.logger.Error("error unmarshaling follow change payload", err, watermill.LogFields{"payload": string(message.Payload)})
 				continue
