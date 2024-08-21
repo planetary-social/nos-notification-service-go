@@ -16,7 +16,6 @@ import (
 	"github.com/planetary-social/go-notification-service/service/adapters"
 	"github.com/planetary-social/go-notification-service/service/adapters/apns"
 	"github.com/planetary-social/go-notification-service/service/adapters/firestore"
-	"github.com/planetary-social/go-notification-service/service/adapters/mocks"
 	"github.com/planetary-social/go-notification-service/service/adapters/prometheus"
 	"github.com/planetary-social/go-notification-service/service/adapters/pubsub"
 	"github.com/planetary-social/go-notification-service/service/app"
@@ -154,8 +153,12 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 	server := http.NewServer(configConfig, application, logger)
 	metricsServer := http.NewMetricsServer(prometheusPrometheus, configConfig, logger)
 	downloader := app.NewDownloader(memoryEventWasAlreadySavedCache, transactionProvider, receivedEventPubSub, logger, prometheusPrometheus)
-	mockExternalFollowChangeSubscriber := mocks.NewMockExternalFollowChangeSubscriber()
-	followChangePuller := app.NewFollowChangePuller(mockExternalFollowChangeSubscriber, logger, prometheusPrometheus)
+	externalFollowChangeSubscriber, err := newExternalFollowChangeSubscriber(configConfig, watermillAdapter)
+	if err != nil {
+		cleanup()
+		return IntegrationService{}, nil, err
+	}
+	followChangePuller := app.NewFollowChangePuller(externalFollowChangeSubscriber, logger, prometheusPrometheus)
 	receivedEventSubscriber := memorypubsub.NewReceivedEventSubscriber(receivedEventPubSub, saveReceivedEventHandler, logger)
 	subscriber, err := firestore.NewWatermillSubscriber(client, watermillAdapter)
 	if err != nil {
@@ -168,10 +171,14 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 		cleanup()
 		return IntegrationService{}, nil, err
 	}
-	mockExternalEventPublisher := mocks.NewMockExternalEventPublisher()
-	processSavedEventHandler := app.NewProcessSavedEventHandler(transactionProvider, generator, apnsMock, logger, prometheusPrometheus, mockExternalEventPublisher)
+	externalEventPublisher, err := newExternalEventPublisher(configConfig, watermillAdapter)
+	if err != nil {
+		cleanup()
+		return IntegrationService{}, nil, err
+	}
+	processSavedEventHandler := app.NewProcessSavedEventHandler(transactionProvider, generator, apnsMock, logger, prometheusPrometheus, externalEventPublisher)
 	eventSavedSubscriber := firestorepubsub.NewEventSavedSubscriber(subscriber, processSavedEventHandler, prometheusPrometheus, logger)
-	service := NewService(application, server, metricsServer, downloader, followChangePuller, receivedEventSubscriber, mockExternalFollowChangeSubscriber, eventSavedSubscriber, memoryEventWasAlreadySavedCache)
+	service := NewService(application, server, metricsServer, downloader, followChangePuller, receivedEventSubscriber, externalFollowChangeSubscriber, eventSavedSubscriber, memoryEventWasAlreadySavedCache)
 	integrationService := IntegrationService{
 		Service:  service,
 		MockAPNS: apnsMock,
