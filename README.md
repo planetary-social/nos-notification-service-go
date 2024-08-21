@@ -282,6 +282,9 @@ flowchart TB
 
 3. **Tag the Image:**
    Tag the image with the `stable` tag as described in the [GitHub documentation](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry).
+   ```
+   docker tag ghcr.io/planetary-social/nos-notification-service-go:latest ghcr.io/planetary-social/nos-notification-service-go:stable && docker push ghcr.io/planetary-social/nos-notification-service-go:stable
+   ```
 
 4. **Trigger the Image Update Process:**
    The image update process checks for new tags every 3 minutes. Therefore, you should see the new image deployed in approximately 5 minutes.
