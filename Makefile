@@ -19,8 +19,8 @@ test:
 
 .PHONY: recreate-emulator
 recreate-emulator:
-	sudo docker-compose -f ./docker-compose-integration.yml rm -f -s -v
-	sudo docker-compose -f ./docker-compose-integration.yml up -d
+	docker compose -f ./docker-compose-integration.yml rm -f -s -v
+	docker compose -f ./docker-compose-integration.yml up -d
 
 .PHONY: test-integration
 test-integration:

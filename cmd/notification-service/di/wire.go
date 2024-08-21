@@ -10,7 +10,6 @@ import (
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/google/wire"
 	"github.com/planetary-social/go-notification-service/service/adapters/apns"
-	"github.com/planetary-social/go-notification-service/service/adapters/mocks"
 	"github.com/planetary-social/go-notification-service/service/app"
 	"github.com/planetary-social/go-notification-service/service/config"
 	"github.com/planetary-social/go-notification-service/service/domain/notifications"
@@ -26,7 +25,6 @@ func BuildService(context.Context, config.Config) (Service, func(), error) {
 		downloaderSet,
 		generatorSet,
 		pubsubSet,
-		googlePubsubSet,
 		loggingSet,
 		adaptersSet,
 		followChangePullerSet,
@@ -55,11 +53,6 @@ func BuildIntegrationService(context.Context, config.Config) (IntegrationService
 		pubsubSet,
 		loggingSet,
 		integrationAdaptersSet,
-
-		mocks.NewMockExternalEventPublisher,
-		mocks.NewMockExternalFollowChangeSubscriber,
-		wire.Bind(new(app.ExternalEventPublisher), new(*mocks.MockExternalEventPublisher)),
-		wire.Bind(new(app.ExternalFollowChangeSubscriber), new(*mocks.MockExternalFollowChangeSubscriber)),
 	)
 	return IntegrationService{}, nil, nil
 }

@@ -14,11 +14,8 @@ var pubsubSet = wire.NewSet(
 	pubsub.NewReceivedEventPubSub,
 	wire.Bind(new(app.ReceivedEventPublisher), new(*pubsub.ReceivedEventPubSub)),
 	wire.Bind(new(app.ReceivedEventSubscriber), new(*pubsub.ReceivedEventPubSub)),
-)
-
-var googlePubsubSet = wire.NewSet(
-	newExternalEventPublisher,
 	newExternalFollowChangeSubscriber,
+	newExternalEventPublisher,
 )
 
 func newExternalEventPublisher(config config.Config, logger watermill.LoggerAdapter) (app.ExternalEventPublisher, error) {

@@ -20,9 +20,10 @@ func NewFollowChangePuller(
 	metrics Metrics,
 ) *FollowChangePuller {
 	return &FollowChangePuller{
-		logger:  logger.New("followChangePuller"),
-		metrics: metrics,
-		counter: 0,
+		externalFollowChangeSubscriber: externalFollowChangeSubscriber,
+		logger:                         logger.New("followChangePuller"),
+		metrics:                        metrics,
+		counter:                        0,
 	}
 }
 
