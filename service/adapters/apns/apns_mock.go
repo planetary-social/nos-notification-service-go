@@ -6,6 +6,7 @@ import (
 	"github.com/planetary-social/go-notification-service/internal"
 	"github.com/planetary-social/go-notification-service/internal/logging"
 	"github.com/planetary-social/go-notification-service/service/config"
+	"github.com/planetary-social/go-notification-service/service/domain"
 	"github.com/planetary-social/go-notification-service/service/domain/notifications"
 )
 
@@ -32,6 +33,12 @@ func (a *APNSMock) SendNotification(notification notifications.Notification) err
 		Message("sending a mock APNs notification")
 
 	return nil
+}
+
+func (a *APNSMock) SendFollowChangeNotification(followChange domain.FollowChange, token domain.APNSToken) error {
+	notification := notifications.Notification{}
+
+	return a.SendNotification(notification)
 }
 
 func (a *APNSMock) SentNotifications() []notifications.Notification {

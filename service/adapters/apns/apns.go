@@ -1,9 +1,14 @@
 package apns
 
 import (
+	"encoding/json"
+	"time"
+
 	"github.com/boreq/errors"
+	"github.com/google/uuid"
 	"github.com/planetary-social/go-notification-service/internal/logging"
 	"github.com/planetary-social/go-notification-service/service/config"
+	"github.com/planetary-social/go-notification-service/service/domain"
 	"github.com/planetary-social/go-notification-service/service/domain/notifications"
 	"github.com/sideshow/apns2"
 	"github.com/sideshow/apns2/certificate"
@@ -72,4 +77,85 @@ func (a *APNS) SendNotification(notification notifications.Notification) error {
 		Message("sent a notification")
 
 	return nil
+}
+
+func (a *APNS) SendFollowChangeNotification(followChange domain.FollowChange, apnsToken domain.APNSToken) error {
+	if apnsToken.Hex() == "" {
+		return errors.New("invalid APNs token")
+	}
+	n, err := a.buildFollowChangeNotification(followChange, apnsToken)
+	if err != nil {
+		return err
+	}
+	resp, err := a.client.Push(n)
+	//a.metrics.ReportCallToAPNS(resp.StatusCode, err)
+	if err != nil {
+		return errors.Wrap(err, "error pushing the follow change notification")
+	}
+
+	if resp.StatusCode == 200 {
+		a.logger.Debug().
+			WithField("uuid", n.ApnsID).
+			WithField("response.reason", resp.Reason).
+			WithField("response.statusCode", resp.StatusCode).
+			WithField("host", a.client.Host).
+			Message("sent a follow change notification")
+	} else {
+		a.logger.Error().
+			WithField("uuid", n.ApnsID).
+			WithField("response.reason", resp.Reason).
+			WithField("response.statusCode", resp.StatusCode).
+			WithField("host", a.client.Host).
+			Message("failed to send a follow change notification")
+	}
+
+	return nil
+}
+
+func (a *APNS) buildFollowChangeNotification(followChange domain.FollowChange, apnsToken domain.APNSToken) (*apns2.Notification, error) {
+	payload, err := followChangePayload(followChange)
+	if err != nil {
+		return nil, errors.Wrap(err, "error creating a payload")
+	}
+
+	n := &apns2.Notification{
+		PushType:    apns2.PushTypeAlert,
+		ApnsID:      uuid.New().String(),
+		DeviceToken: apnsToken.Hex(),
+		Topic:       a.cfg.APNSTopic(),
+		Payload:     payload,
+		Priority:    apns2.PriorityLow,
+	}
+
+	return n, nil
+}
+
+func followChangePayload(followChange domain.FollowChange) ([]byte, error) {
+	alertMessage := ""
+	if followChange.ChangeType == "unfollowed" {
+		alertMessage = followChange.FriendlyFollower + " has unfollowed you!"
+	} else {
+		alertMessage = followChange.FriendlyFollower + " is a new follower!"
+	}
+
+	payload := map[string]interface{}{
+		"aps": map[string]interface{}{
+			"alert": alertMessage,
+			"sound": "default",
+			"badge": 1,
+		},
+		"data": map[string]interface{}{
+			"changeType":       followChange.ChangeType,
+			"at":               followChange.At.Format(time.RFC3339),
+			"follower":         followChange.Follower.Hex(),
+			"friendlyFollower": followChange.FriendlyFollower,
+		},
+	}
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+
+	return payloadBytes, nil
 }
