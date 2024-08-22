@@ -53,12 +53,6 @@ func (f *FollowChangePuller) Run(ctx context.Context) error {
 
 			f.logger.Debug().Message(followChange.String())
 
-			// TODO: for the moment, just send notifications to Daniel
-			if followChange.Followee.Hex() != "89ef92b9ebe6dc1e4ea398f6477f227e95429627b0a33dc89b640e137b256be5" {
-				f.logger.Debug().WithField("followee", followChange.Followee.Hex()).Message("ignoring follow change")
-				continue
-			}
-
 			tokens, err := f.queries.GetTokens.Handle(ctx, followChange.Followee)
 			if err != nil {
 				// Not one of our users, ignore
