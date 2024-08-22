@@ -80,7 +80,12 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 		cleanup()
 		return Service{}, nil, err
 	}
-	followChangePuller := app.NewFollowChangePuller(externalFollowChangeSubscriber, logger, prometheusPrometheus)
+	apnsAPNS, err := apns.NewAPNS(configConfig, prometheusPrometheus, logger)
+	if err != nil {
+		cleanup()
+		return Service{}, nil, err
+	}
+	followChangePuller := app.NewFollowChangePuller(externalFollowChangeSubscriber, apnsAPNS, queries, logger, prometheusPrometheus)
 	receivedEventSubscriber := memorypubsub.NewReceivedEventSubscriber(receivedEventPubSub, saveReceivedEventHandler, logger)
 	subscriber, err := firestore.NewWatermillSubscriber(client, watermillAdapter)
 	if err != nil {
@@ -88,11 +93,6 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 		return Service{}, nil, err
 	}
 	generator := notifications.NewGenerator(logger)
-	apnsAPNS, err := apns.NewAPNS(configConfig, prometheusPrometheus, logger)
-	if err != nil {
-		cleanup()
-		return Service{}, nil, err
-	}
 	externalEventPublisher, err := newExternalEventPublisher(configConfig, watermillAdapter)
 	if err != nil {
 		cleanup()
@@ -158,7 +158,12 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 		cleanup()
 		return IntegrationService{}, nil, err
 	}
-	followChangePuller := app.NewFollowChangePuller(externalFollowChangeSubscriber, logger, prometheusPrometheus)
+	apnsMock, err := apns.NewAPNSMock(configConfig, logger)
+	if err != nil {
+		cleanup()
+		return IntegrationService{}, nil, err
+	}
+	followChangePuller := app.NewFollowChangePuller(externalFollowChangeSubscriber, apnsMock, queries, logger, prometheusPrometheus)
 	receivedEventSubscriber := memorypubsub.NewReceivedEventSubscriber(receivedEventPubSub, saveReceivedEventHandler, logger)
 	subscriber, err := firestore.NewWatermillSubscriber(client, watermillAdapter)
 	if err != nil {
@@ -166,11 +171,6 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 		return IntegrationService{}, nil, err
 	}
 	generator := notifications.NewGenerator(logger)
-	apnsMock, err := apns.NewAPNSMock(configConfig, logger)
-	if err != nil {
-		cleanup()
-		return IntegrationService{}, nil, err
-	}
 	externalEventPublisher, err := newExternalEventPublisher(configConfig, watermillAdapter)
 	if err != nil {
 		cleanup()

@@ -80,6 +80,7 @@ type Queries struct {
 
 type APNS interface {
 	SendNotification(notification notifications.Notification) error
+	SendFollowChangeNotification(followChange domain.FollowChange, apnsToken domain.APNSToken) error
 }
 
 type EventOrError struct {
