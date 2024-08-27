@@ -133,7 +133,7 @@ func (a *APNS) buildFollowChangeNotification(followChange domain.FollowChange, a
 
 func followChangePayload(followChange domain.FollowChange) ([]byte, error) {
 	alertMessage := ""
-	if strings.HasPrefix(followChange.FriendlyFollowee, "npub") {
+	if strings.HasPrefix(followChange.FriendlyFollower, "npub") {
 		if followChange.ChangeType == "unfollowed" {
 			alertMessage = "You've been unfollowed!"
 		} else {
