@@ -2,6 +2,7 @@ package apns
 
 import (
 	"encoding/json"
+	"strings"
 	"time"
 
 	"github.com/boreq/errors"
@@ -132,17 +133,28 @@ func (a *APNS) buildFollowChangeNotification(followChange domain.FollowChange, a
 
 func followChangePayload(followChange domain.FollowChange) ([]byte, error) {
 	alertMessage := ""
-	if followChange.ChangeType == "unfollowed" {
-		alertMessage = followChange.FriendlyFollower + " has unfollowed you!"
+	if strings.HasPrefix(followChange.FriendlyFollowee, "npub") {
+		if followChange.ChangeType == "unfollowed" {
+			alertMessage = "You've been unfollowed!"
+		} else {
+			alertMessage = "You have a new follower!"
+		}
 	} else {
-		alertMessage = followChange.FriendlyFollower + " is a new follower!"
+		if followChange.ChangeType == "unfollowed" {
+			alertMessage = followChange.FriendlyFollower + " has unfollowed you!"
+		} else {
+			alertMessage = followChange.FriendlyFollower + " is a new follower!"
+		}
 	}
 
+	// See https://developer.apple.com/documentation/usernotifications/generating-a-remote-notification
 	payload := map[string]interface{}{
 		"aps": map[string]interface{}{
-			"alert": alertMessage,
-			"sound": "default",
-			"badge": 1,
+			"alert":              alertMessage,
+			"sound":              "default",
+			"badge":              1,
+			"thread-id":          followChange.Followee.Hex(),
+			"interruption-level": "passive",
 		},
 		"data": map[string]interface{}{
 			"changeType":       followChange.ChangeType,
