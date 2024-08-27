@@ -51,13 +51,13 @@ func (f *FollowChangePuller) Run(ctx context.Context) error {
 				return nil // Channel closed, exit gracefully
 			}
 
-			f.logger.Debug().Message(followChange.String())
-
 			tokens, err := f.queries.GetTokens.Handle(ctx, followChange.Followee)
 			if err != nil {
 				// Not one of our users, ignore
 				continue
 			}
+
+			f.logger.Debug().Message(followChange.String())
 
 			for _, token := range tokens {
 				if err := f.apns.SendFollowChangeNotification(*followChange, token); err != nil {
