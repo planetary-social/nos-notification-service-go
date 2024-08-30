@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/nbd-wtf/go-nostr"
+	"github.com/nbd-wtf/go-nostr/nip19"
 	"github.com/planetary-social/go-notification-service/internal"
 	"github.com/planetary-social/go-notification-service/service/domain"
 )
@@ -70,6 +71,12 @@ func SomeHexBytesOfLen(l int) string {
 		panic(err)
 	}
 	return hex.EncodeToString(b)
+}
+
+func PublicKeyAndNpub() (domain.PublicKey, string) {
+	pk, _ := SomeKeyPair()
+	npub, _ := nip19.EncodePublicKey(pk.Hex())
+	return pk, npub
 }
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")

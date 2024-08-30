@@ -8,6 +8,9 @@ import (
 	"github.com/planetary-social/go-notification-service/internal/logging"
 )
 
+// Reads from the follow-change puller, creates FollowChangeBatch types from
+// each entry and sends notifications to those users for which we have APNS
+// tokens
 type FollowChangePuller struct {
 	externalFollowChangeSubscriber ExternalFollowChangeSubscriber
 	apns                           APNS
@@ -46,24 +49,24 @@ func (f *FollowChangePuller) Run(ctx context.Context) error {
 
 	for {
 		select {
-		case followChange, ok := <-ch:
+		case followChangeAggregate, ok := <-ch:
 			if !ok {
 				return nil // Channel closed, exit gracefully
 			}
 
-			tokens, err := f.queries.GetTokens.Handle(ctx, followChange.Followee)
+			tokens, err := f.queries.GetTokens.Handle(ctx, followChangeAggregate.Followee)
 			if err != nil {
 				// Not one of our users, ignore
 				continue
 			}
 
-			f.logger.Debug().Message(followChange.String())
+			f.logger.Debug().Message(followChangeAggregate.String())
 
 			for _, token := range tokens {
-				if err := f.apns.SendFollowChangeNotification(*followChange, token); err != nil {
+				if err := f.apns.SendFollowChangeNotification(*followChangeAggregate, token); err != nil {
 					f.logger.Error().
 						WithField("token", token.Hex()).
-						WithField("followee", followChange.Followee.Hex()).
+						WithField("followee", followChangeAggregate.Followee.Hex()).
 						WithError(err).
 						Message("error sending follow change notification")
 					continue

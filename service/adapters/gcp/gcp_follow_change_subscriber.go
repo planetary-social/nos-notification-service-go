@@ -39,13 +39,13 @@ func NewFollowChangeSubscriber(subscriber *googlecloud.Subscriber, logger waterm
 	return &GCPFollowChangeSubscriber{subscriber: subscriber, logger: logger}
 }
 
-func (p *GCPFollowChangeSubscriber) Subscribe(ctx context.Context) (<-chan *domain.FollowChange, error) {
+func (p *GCPFollowChangeSubscriber) Subscribe(ctx context.Context) (<-chan *domain.FollowChangeBatch, error) {
 	subChan, err := p.subscriber.Subscribe(ctx, googlePubSubFollowChangeTopic)
 	if err != nil {
 		return nil, errors.Wrap(err, "error subscribing")
 	}
 
-	ch := make(chan *domain.FollowChange)
+	ch := make(chan *domain.FollowChangeBatch)
 
 	go func() {
 		defer close(ch)
@@ -55,7 +55,7 @@ func (p *GCPFollowChangeSubscriber) Subscribe(ctx context.Context) (<-chan *doma
 			// We never retry messages so we can ACK immediately.
 			message.Ack()
 
-			var payload domain.FollowChange
+			var payload domain.FollowChangeBatch
 			if err := json.Unmarshal(message.Payload, &payload); err != nil {
 				p.logger.Error("error unmarshaling follow change payload", err, watermill.LogFields{"payload": string(message.Payload)})
 				continue
