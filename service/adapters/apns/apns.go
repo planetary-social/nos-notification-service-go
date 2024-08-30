@@ -3,10 +3,10 @@ package apns
 import (
 	"encoding/json"
 	"strings"
-	"time"
 
 	"github.com/boreq/errors"
 	"github.com/google/uuid"
+	"github.com/nbd-wtf/go-nostr/nip19"
 	"github.com/planetary-social/go-notification-service/internal/logging"
 	"github.com/planetary-social/go-notification-service/service/config"
 	"github.com/planetary-social/go-notification-service/service/domain"
@@ -147,6 +147,19 @@ func followChangePayload(followChange domain.FollowChange) ([]byte, error) {
 		}
 	}
 
+	followerNpub, err := nip19.EncodePublicKey(followChange.Follower.Hex())
+	if err != nil {
+		return nil, errors.Wrap(err, "error encoding the follower npub")
+	}
+
+	var follows []string
+	var unfollows []string
+	if followChange.ChangeType == "followed" {
+		follows = append(follows, followerNpub)
+	} else {
+		unfollows = append(unfollows, followerNpub)
+	}
+
 	// See https://developer.apple.com/documentation/usernotifications/generating-a-remote-notification
 	payload := map[string]interface{}{
 		"aps": map[string]interface{}{
@@ -157,9 +170,8 @@ func followChangePayload(followChange domain.FollowChange) ([]byte, error) {
 			"interruption-level": "passive",
 		},
 		"data": map[string]interface{}{
-			"changeType":       followChange.ChangeType,
-			"at":               followChange.At.Format(time.RFC3339),
-			"follower":         followChange.Follower.Hex(),
+			"follows":          follows,
+			"unfollows":        unfollows,
 			"friendlyFollower": followChange.FriendlyFollower,
 		},
 	}
