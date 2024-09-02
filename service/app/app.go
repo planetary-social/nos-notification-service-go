@@ -57,7 +57,7 @@ type ExternalEventPublisher interface {
 }
 
 type ExternalFollowChangeSubscriber interface {
-	Subscribe(ctx context.Context) (<-chan *domain.FollowChange, error)
+	Subscribe(ctx context.Context) (<-chan *domain.FollowChangeBatch, error)
 }
 
 type Application struct {
@@ -80,7 +80,7 @@ type Queries struct {
 
 type APNS interface {
 	SendNotification(notification notifications.Notification) error
-	SendFollowChangeNotification(followChange domain.FollowChange, apnsToken domain.APNSToken) error
+	SendFollowChangeNotification(followChange domain.FollowChangeBatch, apnsToken domain.APNSToken) error
 }
 
 type EventOrError struct {

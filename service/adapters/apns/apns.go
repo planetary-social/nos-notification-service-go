@@ -2,11 +2,12 @@ package apns
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
-	"time"
 
 	"github.com/boreq/errors"
 	"github.com/google/uuid"
+	"github.com/nbd-wtf/go-nostr/nip19"
 	"github.com/planetary-social/go-notification-service/internal/logging"
 	"github.com/planetary-social/go-notification-service/service/config"
 	"github.com/planetary-social/go-notification-service/service/domain"
@@ -14,6 +15,8 @@ import (
 	"github.com/sideshow/apns2"
 	"github.com/sideshow/apns2/certificate"
 )
+
+const MAX_TOTAL_NPUBS = 58
 
 type Metrics interface {
 	ReportCallToAPNS(statusCode int, err error)
@@ -80,7 +83,7 @@ func (a *APNS) SendNotification(notification notifications.Notification) error {
 	return nil
 }
 
-func (a *APNS) SendFollowChangeNotification(followChange domain.FollowChange, apnsToken domain.APNSToken) error {
+func (a *APNS) SendFollowChangeNotification(followChange domain.FollowChangeBatch, apnsToken domain.APNSToken) error {
 	if apnsToken.Hex() == "" {
 		return errors.New("invalid APNs token")
 	}
@@ -113,8 +116,8 @@ func (a *APNS) SendFollowChangeNotification(followChange domain.FollowChange, ap
 	return nil
 }
 
-func (a *APNS) buildFollowChangeNotification(followChange domain.FollowChange, apnsToken domain.APNSToken) (*apns2.Notification, error) {
-	payload, err := followChangePayload(followChange)
+func (a *APNS) buildFollowChangeNotification(followChange domain.FollowChangeBatch, apnsToken domain.APNSToken) (*apns2.Notification, error) {
+	payload, err := FollowChangePayload(followChange)
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating a payload")
 	}
@@ -131,37 +134,79 @@ func (a *APNS) buildFollowChangeNotification(followChange domain.FollowChange, a
 	return n, nil
 }
 
-func followChangePayload(followChange domain.FollowChange) ([]byte, error) {
+func FollowChangePayload(followChange domain.FollowChangeBatch) ([]byte, error) {
+	return FollowChangePayloadWithValidation(followChange, true)
+}
+
+func FollowChangePayloadWithValidation(followChange domain.FollowChangeBatch, validate bool) ([]byte, error) {
 	alertMessage := ""
-	if strings.HasPrefix(followChange.FriendlyFollower, "npub") {
-		if followChange.ChangeType == "unfollowed" {
-			alertMessage = "You've been unfollowed!"
+	totalNpubs := len(followChange.Follows) + len(followChange.Unfollows)
+	if validate && totalNpubs > MAX_TOTAL_NPUBS {
+		return nil, errors.New("FollowChangeBatch for followee " + followChange.Followee.Hex() + " has too many npubs (" + fmt.Sprint(totalNpubs) + "). MAX_TOTAL_NPUBS is " + fmt.Sprint(MAX_TOTAL_NPUBS))
+	}
+
+	singleChange := totalNpubs == 1
+
+	if singleChange {
+		isFollow := len(followChange.Follows) == 1
+		if strings.HasPrefix(followChange.FriendlyFollower, "npub") {
+			if isFollow {
+				alertMessage = "You have a new follower!"
+			} else {
+				alertMessage = "You've been unfollowed!"
+			}
 		} else {
-			alertMessage = "You have a new follower!"
+			if isFollow {
+				alertMessage = followChange.FriendlyFollower + " is a new follower!"
+			} else {
+				alertMessage = followChange.FriendlyFollower + " has unfollowed you!"
+			}
 		}
 	} else {
-		if followChange.ChangeType == "unfollowed" {
-			alertMessage = followChange.FriendlyFollower + " has unfollowed you!"
-		} else {
-			alertMessage = followChange.FriendlyFollower + " is a new follower!"
-		}
+		alertMessage = fmt.Sprintf("You have %d new followers and %d unfollows!", len(followChange.Follows), len(followChange.Unfollows))
+	}
+
+	followeeNpub, error := nip19.EncodePublicKey(followChange.Followee.Hex())
+	if error != nil {
+		return nil, errors.Wrap(error, "error encoding followee npub")
+	}
+
+	npubFollows, error := pubkeysToNpubs(followChange.Follows)
+	if error != nil {
+		return nil, errors.Wrap(error, "error encoding follow npubs")
+	}
+
+	npubUnfollows, error := pubkeysToNpubs(followChange.Unfollows)
+	if error != nil {
+		return nil, errors.Wrap(error, "error encoding unfollow npubs")
 	}
 
 	// See https://developer.apple.com/documentation/usernotifications/generating-a-remote-notification
+
+	var data map[string]interface{}
+
+	if singleChange {
+		data = map[string]interface{}{
+			"follows":          npubFollows,
+			"unfollows":        npubUnfollows,
+			"friendlyFollower": followChange.FriendlyFollower,
+		}
+	} else {
+		data = map[string]interface{}{
+			"follows":   npubFollows,
+			"unfollows": npubUnfollows,
+		}
+	}
+
 	payload := map[string]interface{}{
 		"aps": map[string]interface{}{
 			"alert":              alertMessage,
 			"sound":              "default",
 			"badge":              1,
-			"thread-id":          followChange.Followee.Hex(),
+			"thread-id":          followeeNpub,
 			"interruption-level": "passive",
 		},
-		"data": map[string]interface{}{
-			"changeType":       followChange.ChangeType,
-			"at":               followChange.At.Format(time.RFC3339),
-			"follower":         followChange.Follower.Hex(),
-			"friendlyFollower": followChange.FriendlyFollower,
-		},
+		"data": data,
 	}
 
 	payloadBytes, err := json.Marshal(payload)
@@ -170,4 +215,16 @@ func followChangePayload(followChange domain.FollowChange) ([]byte, error) {
 	}
 
 	return payloadBytes, nil
+}
+
+func pubkeysToNpubs(pubkeys []domain.PublicKey) ([]string, error) {
+	npubs := make([]string, len(pubkeys))
+	for i, pubkey := range pubkeys {
+		npub, err := nip19.EncodePublicKey(pubkey.Hex())
+		if err != nil {
+			return nil, errors.Wrap(err, "error encoding a public key")
+		}
+		npubs[i] = npub
+	}
+	return npubs, nil
 }

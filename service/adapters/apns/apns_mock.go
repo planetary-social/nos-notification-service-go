@@ -35,7 +35,7 @@ func (a *APNSMock) SendNotification(notification notifications.Notification) err
 	return nil
 }
 
-func (a *APNSMock) SendFollowChangeNotification(followChange domain.FollowChange, token domain.APNSToken) error {
+func (a *APNSMock) SendFollowChangeNotification(followChange domain.FollowChangeBatch, token domain.APNSToken) error {
 	notification := notifications.Notification{}
 
 	return a.SendNotification(notification)

@@ -13,7 +13,7 @@ func NewMockExternalFollowChangeSubscriber() *MockExternalFollowChangeSubscriber
 	return &MockExternalFollowChangeSubscriber{}
 }
 
-func (m MockExternalFollowChangeSubscriber) Subscribe(ctx context.Context) (<-chan *domain.FollowChange, error) {
-	ch := make(chan *domain.FollowChange)
+func (m MockExternalFollowChangeSubscriber) Subscribe(ctx context.Context) (<-chan *domain.FollowChangeBatch, error) {
+	ch := make(chan *domain.FollowChangeBatch)
 	return ch, nil
 }
