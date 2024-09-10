@@ -157,6 +157,57 @@ func TestFollowChangePayload_SingleFollow_WithFriendlyFollower(t *testing.T) {
 	err = json.Unmarshal(payload, &actualPayload)
 	require.NoError(t, err)
 
+	// jsonStr, err := json.Marshal(actualPayload)
+	// if err != nil {
+	// 	fmt.Println("Error:", err)
+	// 	return
+	// }
+	// fmt.Println(string(jsonStr))
+
+	require.Equal(t, expectedPayload, actualPayload)
+}
+
+func TestFollowChangePayload_BatchedFollow_WithNoFriendlyFollower(t *testing.T) {
+	pk1, pk1Npub := fixtures.PublicKeyAndNpub()
+	pk2, pk2Npub := fixtures.PublicKeyAndNpub()
+	pk3, pk3Npub := fixtures.PublicKeyAndNpub()
+	pk4, pk4Npub := fixtures.PublicKeyAndNpub()
+
+	batch := domain.FollowChangeBatch{
+		Followee:  pk1,
+		Follows:   []domain.PublicKey{pk2, pk3},
+		Unfollows: []domain.PublicKey{pk4},
+	}
+
+	payload, err := apns.FollowChangePayload(batch)
+	require.NoError(t, err)
+
+	expectedAlert := "You have 2 new followers and 1 unfollows!"
+	expectedPayload := map[string]interface{}{
+		"aps": map[string]interface{}{
+			"alert":              expectedAlert,
+			"sound":              "default",
+			"badge":              float64(1), // Convert badge to float64
+			"thread-id":          pk1Npub,
+			"interruption-level": "passive",
+		},
+		"data": map[string]interface{}{
+			"follows":   []interface{}{pk2Npub, pk3Npub}, // Use []interface{}
+			"unfollows": []interface{}{pk4Npub},
+		},
+	}
+
+	var actualPayload map[string]interface{}
+	err = json.Unmarshal(payload, &actualPayload)
+	require.NoError(t, err)
+
+	// jsonStr, err := json.Marshal(actualPayload)
+	// if err != nil {
+	// 	fmt.Println("Error:", err)
+	// 	return
+	// }
+	// fmt.Println(string(jsonStr))
+
 	require.Equal(t, expectedPayload, actualPayload)
 }
 func TestFollowChangePayload_Exceeds4096Bytes_With59TotalNpubs(t *testing.T) {
