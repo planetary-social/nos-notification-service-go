@@ -13,13 +13,11 @@ func TestFollowChangeBatch_UnmarshalJSON_Valid(t *testing.T) {
 	pk1, pk1Npub := fixtures.PublicKeyAndNpub()
 	pk2, pk2Npub := fixtures.PublicKeyAndNpub()
 	pk3, pk3Npub := fixtures.PublicKeyAndNpub()
-	pk4, pk4Npub := fixtures.PublicKeyAndNpub()
 
 	jsonData := `{
 		"followee": "` + pk1Npub + `",
 		"friendlyFollower": "FriendlyUser",
-		"follows": ["` + pk2Npub + `", "` + pk3Npub + `"],
-		"unfollows": ["` + pk4Npub + `"]
+		"follows": ["` + pk2Npub + `", "` + pk3Npub + `"]
 	}`
 
 	var batch domain.FollowChangeBatch
@@ -29,7 +27,6 @@ func TestFollowChangeBatch_UnmarshalJSON_Valid(t *testing.T) {
 	assert.Equal(t, pk1, batch.Followee)
 	assert.Equal(t, "FriendlyUser", batch.FriendlyFollower)
 	assert.Equal(t, []domain.PublicKey{pk2, pk3}, batch.Follows)
-	assert.Equal(t, []domain.PublicKey{pk4}, batch.Unfollows)
 }
 
 func TestFollowChangeBatch_UnmarshalJSON_InvalidFollowee(t *testing.T) {
@@ -38,8 +35,7 @@ func TestFollowChangeBatch_UnmarshalJSON_InvalidFollowee(t *testing.T) {
 	jsonData := `{
 		"followee": "invalid",
 		"friendlyFollower": "FriendlyUser",
-		"follows": ["` + pk1Npub + `"],
-		"unfollows": []
+		"follows": ["` + pk1Npub + `"]
 	}`
 
 	var batch domain.FollowChangeBatch
@@ -54,8 +50,7 @@ func TestFollowChangeBatch_UnmarshalJSON_InvalidFollows(t *testing.T) {
 	jsonData := `{
 		"followee": "` + pk1Npub + `",
 		"friendlyFollower": "FriendlyUser",
-		"follows": ["invalid"],
-		"unfollows": []
+		"follows": ["invalid"]
 	}`
 
 	var batch domain.FollowChangeBatch
@@ -78,33 +73,17 @@ func TestFollowChangeBatch_String_SingleFollow(t *testing.T) {
 	assert.Equal(t, expected, batch.String())
 }
 
-func TestFollowChangeBatch_String_SingleUnfollow(t *testing.T) {
-	pk1, pk1Npub := fixtures.PublicKeyAndNpub()
-	pk2, _ := fixtures.PublicKeyAndNpub()
-
-	batch := domain.FollowChangeBatch{
-		Followee:         pk1,
-		FriendlyFollower: "FriendlyUser",
-		Unfollows:        []domain.PublicKey{pk2},
-	}
-
-	expected := "Unfollow: FriendlyUser --x--> " + pk1Npub
-	assert.Equal(t, expected, batch.String())
-}
-
-func TestFollowChangeBatch_String_MultipleFollowsUnfollows(t *testing.T) {
+func TestFollowChangeBatch_String_MultipleFollows(t *testing.T) {
 	pk1, pk1Npub := fixtures.PublicKeyAndNpub()
 	pk2, _ := fixtures.PublicKeyAndNpub()
 	pk3, _ := fixtures.PublicKeyAndNpub()
-	pk4, _ := fixtures.PublicKeyAndNpub()
 
 	batch := domain.FollowChangeBatch{
 		Followee:         pk1,
 		FriendlyFollower: "FriendlyUser",
 		Follows:          []domain.PublicKey{pk2, pk3},
-		Unfollows:        []domain.PublicKey{pk4},
 	}
 
-	expected := "Follow aggregate: 2 follows, 1 unfollows for " + pk1Npub
+	expected := "Follow aggregate: 2 followers for " + pk1Npub
 	assert.Equal(t, expected, batch.String())
 }
