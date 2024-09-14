@@ -140,7 +140,7 @@ func FollowChangePayload(followChange domain.FollowChangeBatch) ([]byte, error) 
 
 func FollowChangePayloadWithValidation(followChange domain.FollowChangeBatch, validate bool) ([]byte, error) {
 	alertMessage := ""
-	totalNpubs := len(followChange.Follows) + len(followChange.Unfollows)
+	totalNpubs := len(followChange.Follows)
 	if validate && totalNpubs > MAX_TOTAL_NPUBS {
 		return nil, errors.New("FollowChangeBatch for followee " + followChange.Followee.Hex() + " has too many npubs (" + fmt.Sprint(totalNpubs) + "). MAX_TOTAL_NPUBS is " + fmt.Sprint(MAX_TOTAL_NPUBS))
 	}
@@ -148,22 +148,13 @@ func FollowChangePayloadWithValidation(followChange domain.FollowChangeBatch, va
 	singleChange := totalNpubs == 1
 
 	if singleChange {
-		isFollow := len(followChange.Follows) == 1
 		if strings.HasPrefix(followChange.FriendlyFollower, "npub") {
-			if isFollow {
-				alertMessage = "You have a new follower!"
-			} else {
-				alertMessage = "You've been unfollowed!"
-			}
+			alertMessage = "You have a new follower!"
 		} else {
-			if isFollow {
-				alertMessage = followChange.FriendlyFollower + " is a new follower!"
-			} else {
-				alertMessage = followChange.FriendlyFollower + " has unfollowed you!"
-			}
+			alertMessage = followChange.FriendlyFollower + " is a new follower!"
 		}
 	} else {
-		alertMessage = fmt.Sprintf("You have %d new followers and %d unfollows!", len(followChange.Follows), len(followChange.Unfollows))
+		alertMessage = fmt.Sprintf("You have %d new followers!", len(followChange.Follows))
 	}
 
 	followeeNpub, error := nip19.EncodePublicKey(followChange.Followee.Hex())
@@ -176,11 +167,6 @@ func FollowChangePayloadWithValidation(followChange domain.FollowChangeBatch, va
 		return nil, errors.Wrap(error, "error encoding follow npubs")
 	}
 
-	npubUnfollows, error := pubkeysToNpubs(followChange.Unfollows)
-	if error != nil {
-		return nil, errors.Wrap(error, "error encoding unfollow npubs")
-	}
-
 	// See https://developer.apple.com/documentation/usernotifications/generating-a-remote-notification
 
 	var data map[string]interface{}
@@ -188,13 +174,11 @@ func FollowChangePayloadWithValidation(followChange domain.FollowChangeBatch, va
 	if singleChange {
 		data = map[string]interface{}{
 			"follows":          npubFollows,
-			"unfollows":        npubUnfollows,
 			"friendlyFollower": followChange.FriendlyFollower,
 		}
 	} else {
 		data = map[string]interface{}{
-			"follows":   npubFollows,
-			"unfollows": npubUnfollows,
+			"follows": npubFollows,
 		}
 	}
 

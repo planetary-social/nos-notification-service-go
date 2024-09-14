@@ -15,7 +15,6 @@ type FollowChangeBatch struct {
 	Followee         PublicKey   `json:"followee"`
 	FriendlyFollower string      `json:"friendlyFollower"`
 	Follows          []PublicKey `json:"follows"`
-	Unfollows        []PublicKey `json:"unfollows"`
 }
 
 func (f *FollowChangeBatch) UnmarshalJSON(data []byte) error {
@@ -23,7 +22,6 @@ func (f *FollowChangeBatch) UnmarshalJSON(data []byte) error {
 		Followee         string   `json:"followee"`
 		FriendlyFollower string   `json:"friendlyFollower"`
 		Follows          []string `json:"follows"`
-		Unfollows        []string `json:"unfollows"`
 	}
 
 	if err := json.Unmarshal(data, &temp); err != nil {
@@ -46,14 +44,6 @@ func (f *FollowChangeBatch) UnmarshalJSON(data []byte) error {
 		}
 	}
 
-	f.Unfollows = make([]PublicKey, len(temp.Unfollows))
-	for i, npub := range temp.Unfollows {
-		f.Unfollows[i], err = NewPublicKeyFromNpub(npub)
-		if err != nil {
-			return errors.New("invalid npub for unfollow: " + err.Error())
-		}
-	}
-
 	return nil
 }
 
@@ -63,13 +53,9 @@ func (f FollowChangeBatch) String() string {
 		friendlyFollowee = f.Followee.Hex()
 	}
 
-	if len(f.Follows)+len(f.Unfollows) == 1 {
-		if len(f.Follows) == 1 {
-			return fmt.Sprintf("Follow: %s -----> %s", f.FriendlyFollower, friendlyFollowee)
-		} else {
-			return fmt.Sprintf("Unfollow: %s --x--> %s", f.FriendlyFollower, friendlyFollowee)
-		}
+	if len(f.Follows) == 1 {
+		return fmt.Sprintf("Follow: %s -----> %s", f.FriendlyFollower, friendlyFollowee)
 	}
 
-	return fmt.Sprintf("Follow aggregate: %d follows, %d unfollows for %s", len(f.Follows), len(f.Unfollows), friendlyFollowee)
+	return fmt.Sprintf("Follow aggregate: %d followers for %s", len(f.Follows), friendlyFollowee)
 }

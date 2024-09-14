@@ -19,7 +19,6 @@ func TestFollowChangePayload_SingleFollow(t *testing.T) {
 		Followee:         pk1,
 		FriendlyFollower: "npub_someFollower",
 		Follows:          []domain.PublicKey{pk2},
-		Unfollows:        nil,
 	}
 
 	payload, err := apns.FollowChangePayload(batch)
@@ -36,44 +35,6 @@ func TestFollowChangePayload_SingleFollow(t *testing.T) {
 		},
 		"data": map[string]interface{}{
 			"follows":          []interface{}{pk2Npub}, // Use []interface{}
-			"unfollows":        []interface{}{},
-			"friendlyFollower": batch.FriendlyFollower,
-		},
-	}
-
-	var actualPayload map[string]interface{}
-	err = json.Unmarshal(payload, &actualPayload)
-	require.NoError(t, err)
-
-	require.Equal(t, expectedPayload, actualPayload)
-}
-
-func TestFollowChangePayload_SingleUnfollow(t *testing.T) {
-	pk1, pk1Npub := fixtures.PublicKeyAndNpub()
-	pk2, pk2Npub := fixtures.PublicKeyAndNpub()
-
-	batch := domain.FollowChangeBatch{
-		Followee:         pk1,
-		FriendlyFollower: "npub_someFollower",
-		Follows:          nil,
-		Unfollows:        []domain.PublicKey{pk2},
-	}
-
-	payload, err := apns.FollowChangePayload(batch)
-	require.NoError(t, err)
-
-	expectedAlert := "You've been unfollowed!"
-	expectedPayload := map[string]interface{}{
-		"aps": map[string]interface{}{
-			"alert":              expectedAlert,
-			"sound":              "default",
-			"badge":              float64(1), // Convert badge to float64
-			"thread-id":          pk1Npub,
-			"interruption-level": "passive",
-		},
-		"data": map[string]interface{}{
-			"follows":          []interface{}{},
-			"unfollows":        []interface{}{pk2Npub}, // Use []interface{}
 			"friendlyFollower": batch.FriendlyFollower,
 		},
 	}
@@ -89,19 +50,17 @@ func TestFollowChangePayload_MultipleFollowsUnfollows(t *testing.T) {
 	pk1, pk1Npub := fixtures.PublicKeyAndNpub()
 	pk2, pk2Npub := fixtures.PublicKeyAndNpub()
 	pk3, pk3Npub := fixtures.PublicKeyAndNpub()
-	pk4, pk4Npub := fixtures.PublicKeyAndNpub()
 
 	batch := domain.FollowChangeBatch{
 		Followee:         pk1,
 		FriendlyFollower: "FriendlyUser",
 		Follows:          []domain.PublicKey{pk2, pk3},
-		Unfollows:        []domain.PublicKey{pk4},
 	}
 
 	payload, err := apns.FollowChangePayload(batch)
 	require.NoError(t, err)
 
-	expectedAlert := "You have 2 new followers and 1 unfollows!"
+	expectedAlert := "You have 2 new followers!"
 	expectedPayload := map[string]interface{}{
 		"aps": map[string]interface{}{
 			"alert":              expectedAlert,
@@ -111,8 +70,7 @@ func TestFollowChangePayload_MultipleFollowsUnfollows(t *testing.T) {
 			"interruption-level": "passive",
 		},
 		"data": map[string]interface{}{
-			"follows":   []interface{}{pk2Npub, pk3Npub}, // Use []interface{}
-			"unfollows": []interface{}{pk4Npub},          // Use []interface{}
+			"follows": []interface{}{pk2Npub, pk3Npub}, // Use []interface{}
 		},
 	}
 
@@ -131,7 +89,6 @@ func TestFollowChangePayload_SingleFollow_WithFriendlyFollower(t *testing.T) {
 		Followee:         pk1,
 		FriendlyFollower: "John Doe",
 		Follows:          []domain.PublicKey{pk2},
-		Unfollows:        nil,
 	}
 
 	payload, err := apns.FollowChangePayload(batch)
@@ -148,7 +105,6 @@ func TestFollowChangePayload_SingleFollow_WithFriendlyFollower(t *testing.T) {
 		},
 		"data": map[string]interface{}{
 			"follows":          []interface{}{pk2Npub}, // Use []interface{}
-			"unfollows":        []interface{}{},
 			"friendlyFollower": batch.FriendlyFollower,
 		},
 	}
@@ -171,18 +127,16 @@ func TestFollowChangePayload_BatchedFollow_WithNoFriendlyFollower(t *testing.T) 
 	pk1, pk1Npub := fixtures.PublicKeyAndNpub()
 	pk2, pk2Npub := fixtures.PublicKeyAndNpub()
 	pk3, pk3Npub := fixtures.PublicKeyAndNpub()
-	pk4, pk4Npub := fixtures.PublicKeyAndNpub()
 
 	batch := domain.FollowChangeBatch{
-		Followee:  pk1,
-		Follows:   []domain.PublicKey{pk2, pk3},
-		Unfollows: []domain.PublicKey{pk4},
+		Followee: pk1,
+		Follows:  []domain.PublicKey{pk2, pk3},
 	}
 
 	payload, err := apns.FollowChangePayload(batch)
 	require.NoError(t, err)
 
-	expectedAlert := "You have 2 new followers and 1 unfollows!"
+	expectedAlert := "You have 2 new followers!"
 	expectedPayload := map[string]interface{}{
 		"aps": map[string]interface{}{
 			"alert":              expectedAlert,
@@ -192,8 +146,7 @@ func TestFollowChangePayload_BatchedFollow_WithNoFriendlyFollower(t *testing.T) 
 			"interruption-level": "passive",
 		},
 		"data": map[string]interface{}{
-			"follows":   []interface{}{pk2Npub, pk3Npub}, // Use []interface{}
-			"unfollows": []interface{}{pk4Npub},
+			"follows": []interface{}{pk2Npub, pk3Npub}, // Use []interface{}
 		},
 	}
 
@@ -217,16 +170,11 @@ func TestFollowChangePayload_Exceeds4096Bytes_With59TotalNpubs(t *testing.T) {
 		Followee:         pk1,
 		FriendlyFollower: "npub_someFollower_wont_be_added",
 		Follows:          []domain.PublicKey{},
-		Unfollows:        []domain.PublicKey{},
 	}
 
-	for i := 0; i < 29; i++ { // 29 follows
+	for i := 0; i < 59; i++ {
 		follow, _ := fixtures.PublicKeyAndNpub()
 		batch.Follows = append(batch.Follows, follow)
-	}
-	for i := 0; i < 30; i++ { // 30 unfollows
-		unfollow, _ := fixtures.PublicKeyAndNpub()
-		batch.Unfollows = append(batch.Unfollows, unfollow)
 	}
 
 	payload, err := apns.FollowChangePayloadWithValidation(batch, false)
@@ -245,16 +193,11 @@ func TestFollowChangePayload_ValidPayload_With58TotalNpubs_IsValid(t *testing.T)
 		Followee:         pk1,
 		FriendlyFollower: "npub_someFollower_wont_be_added",
 		Follows:          []domain.PublicKey{},
-		Unfollows:        []domain.PublicKey{},
 	}
 
-	for i := 0; i < 29; i++ { // 29 follows
+	for i := 0; i < 58; i++ {
 		follow, _ := fixtures.PublicKeyAndNpub()
 		batch.Follows = append(batch.Follows, follow)
-	}
-	for i := 0; i < 29; i++ { // 29 unfollows
-		unfollow, _ := fixtures.PublicKeyAndNpub()
-		batch.Unfollows = append(batch.Unfollows, unfollow)
 	}
 
 	payload, err := apns.FollowChangePayloadWithValidation(batch, true) // With validation
@@ -273,16 +216,11 @@ func TestFollowChangePayload_InvalidPayload_With59TotalNpubs_Fails_With_Validati
 		Followee:         pk1,
 		FriendlyFollower: "npub_someFollower_wont_be_added",
 		Follows:          []domain.PublicKey{},
-		Unfollows:        []domain.PublicKey{},
 	}
 
-	for i := 0; i < 29; i++ { // 29 follows
+	for i := 0; i < 59; i++ { // 29 follows
 		follow, _ := fixtures.PublicKeyAndNpub()
 		batch.Follows = append(batch.Follows, follow)
-	}
-	for i := 0; i < 30; i++ { // 30 unfollows
-		unfollow, _ := fixtures.PublicKeyAndNpub()
-		batch.Unfollows = append(batch.Unfollows, unfollow)
 	}
 
 	payload, err := apns.FollowChangePayload(batch) // This always validates
