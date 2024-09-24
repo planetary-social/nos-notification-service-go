@@ -187,11 +187,10 @@ func FollowChangePayloadWithValidation(followChange domain.FollowChangeBatch, va
 
 	payload := map[string]interface{}{
 		"aps": map[string]interface{}{
-			"alert":              alertObject,
-			"sound":              "default",
-			"badge":              1,
-			"thread-id":          followeeNpub,
-			"interruption-level": "passive",
+			"alert":     alertObject,
+			"sound":     "default",
+			"badge":     1,
+			"thread-id": followeeNpub,
 		},
 		"data": data,
 	}
