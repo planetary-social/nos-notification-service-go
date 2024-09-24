@@ -30,11 +30,10 @@ func TestFollowChangePayload_SingleFollow(t *testing.T) {
 
 	expectedPayload := map[string]interface{}{
 		"aps": map[string]interface{}{
-			"alert":              expectedAlert,
-			"sound":              "default",
-			"badge":              float64(1), // Convert badge to float64
-			"thread-id":          pk1Npub,
-			"interruption-level": "passive",
+			"alert":     expectedAlert,
+			"sound":     "default",
+			"badge":     float64(1), // Convert badge to float64
+			"thread-id": pk1Npub,
 		},
 		"data": map[string]interface{}{
 			"follows":          []interface{}{pk2Npub}, // Use []interface{}
@@ -70,11 +69,10 @@ func TestFollowChangePayload_MultipleFollowsUnfollows(t *testing.T) {
 
 	expectedPayload := map[string]interface{}{
 		"aps": map[string]interface{}{
-			"alert":              expectedAlert,
-			"sound":              "default",
-			"badge":              float64(1), // Convert badge to float64
-			"thread-id":          pk1Npub,
-			"interruption-level": "passive",
+			"alert":     expectedAlert,
+			"sound":     "default",
+			"badge":     float64(1), // Convert badge to float64
+			"thread-id": pk1Npub,
 		},
 		"data": map[string]interface{}{
 			"follows": []interface{}{pk2Npub, pk3Npub}, // Use []interface{}
@@ -108,11 +106,10 @@ func TestFollowChangePayload_SingleFollow_WithFriendlyFollower(t *testing.T) {
 
 	expectedPayload := map[string]interface{}{
 		"aps": map[string]interface{}{
-			"alert":              expectedAlert,
-			"sound":              "default",
-			"badge":              float64(1), // Convert badge to float64
-			"thread-id":          pk1Npub,
-			"interruption-level": "passive",
+			"alert":     expectedAlert,
+			"sound":     "default",
+			"badge":     float64(1), // Convert badge to float64
+			"thread-id": pk1Npub,
 		},
 		"data": map[string]interface{}{
 			"follows":          []interface{}{pk2Npub}, // Use []interface{}
@@ -154,11 +151,10 @@ func TestFollowChangePayload_BatchedFollow_WithNoFriendlyFollower(t *testing.T) 
 
 	expectedPayload := map[string]interface{}{
 		"aps": map[string]interface{}{
-			"alert":              expectedAlert,
-			"sound":              "default",
-			"badge":              float64(1), // Convert badge to float64
-			"thread-id":          pk1Npub,
-			"interruption-level": "passive",
+			"alert":     expectedAlert,
+			"sound":     "default",
+			"badge":     float64(1), // Convert badge to float64
+			"thread-id": pk1Npub,
 		},
 		"data": map[string]interface{}{
 			"follows": []interface{}{pk2Npub, pk3Npub}, // Use []interface{}
@@ -178,7 +174,7 @@ func TestFollowChangePayload_BatchedFollow_WithNoFriendlyFollower(t *testing.T) 
 
 	require.Equal(t, expectedPayload, actualPayload)
 }
-func TestFollowChangePayload_Exceeds4096Bytes_With59TotalNpubs(t *testing.T) {
+func TestFollowChangePayload_Exceeds4096Bytes_With60TotalNpubs(t *testing.T) {
 	pk1, _ := fixtures.PublicKeyAndNpub()
 
 	batch := domain.FollowChangeBatch{
@@ -187,7 +183,7 @@ func TestFollowChangePayload_Exceeds4096Bytes_With59TotalNpubs(t *testing.T) {
 		Follows:          []domain.PublicKey{},
 	}
 
-	for i := 0; i < 59; i++ {
+	for i := 0; i < 60; i++ {
 		follow, _ := fixtures.PublicKeyAndNpub()
 		batch.Follows = append(batch.Follows, follow)
 	}
@@ -195,9 +191,9 @@ func TestFollowChangePayload_Exceeds4096Bytes_With59TotalNpubs(t *testing.T) {
 	payload, err := apns.FollowChangePayloadWithValidation(batch, false)
 	require.NoError(t, err)
 
-	// Ensure 59 is the maximum size we can get
+	// 60 pubkeys should exceed 4096 bytes.
 	payloadSize := len(payload)
-	t.Logf("Payload size with 59 total follows and unfollows: %d bytes", payloadSize)
+	t.Logf("Payload size with 60 total follows and unfollows: %d bytes", payloadSize)
 	require.True(t, payloadSize > 4096, fmt.Sprintf("Payload size should exceed 4096 bytes, but was %d bytes", payloadSize))
 }
 
@@ -218,7 +214,9 @@ func TestFollowChangePayload_ValidPayload_With58TotalNpubs_IsValid(t *testing.T)
 	payload, err := apns.FollowChangePayloadWithValidation(batch, true) // With validation
 	require.NoError(t, err)
 
-	// Ensure 58 is the maximum size we can get
+	// Ensure 58 is the maximum size we can get. 59 is in fact also fitting in
+	// 4096 but let's leave some padding for future addition of payload fields
+	// and have room for variability.
 	payloadSize := len(payload)
 	t.Logf("Payload size with 58 total follows and unfollows: %d bytes", payloadSize)
 	require.True(t, payloadSize <= 4096, fmt.Sprintf("Payload size should be within 4096 bytes, but was %d bytes", payloadSize))
