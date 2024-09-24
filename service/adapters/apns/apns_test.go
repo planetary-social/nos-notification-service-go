@@ -24,7 +24,10 @@ func TestFollowChangePayload_SingleFollow(t *testing.T) {
 	payload, err := apns.FollowChangePayload(batch)
 	require.NoError(t, err)
 
-	expectedAlert := "You have a new follower!"
+	expectedAlert := map[string]interface{}{
+		"loc-key": "newFollower",
+	}
+
 	expectedPayload := map[string]interface{}{
 		"aps": map[string]interface{}{
 			"alert":              expectedAlert,
@@ -60,7 +63,11 @@ func TestFollowChangePayload_MultipleFollowsUnfollows(t *testing.T) {
 	payload, err := apns.FollowChangePayload(batch)
 	require.NoError(t, err)
 
-	expectedAlert := "You have 2 new followers!"
+	expectedAlert := map[string]interface{}{
+		"loc-key":  "xNewFollowers",
+		"loc-args": []interface{}{"2"},
+	}
+
 	expectedPayload := map[string]interface{}{
 		"aps": map[string]interface{}{
 			"alert":              expectedAlert,
@@ -94,7 +101,11 @@ func TestFollowChangePayload_SingleFollow_WithFriendlyFollower(t *testing.T) {
 	payload, err := apns.FollowChangePayload(batch)
 	require.NoError(t, err)
 
-	expectedAlert := "John Doe is a new follower!"
+	expectedAlert := map[string]interface{}{
+		"loc-key":  "namedNewFollower",
+		"loc-args": []interface{}{"John Doe"},
+	}
+
 	expectedPayload := map[string]interface{}{
 		"aps": map[string]interface{}{
 			"alert":              expectedAlert,
@@ -136,7 +147,11 @@ func TestFollowChangePayload_BatchedFollow_WithNoFriendlyFollower(t *testing.T) 
 	payload, err := apns.FollowChangePayload(batch)
 	require.NoError(t, err)
 
-	expectedAlert := "You have 2 new followers!"
+	expectedAlert := map[string]interface{}{
+		"loc-key":  "xNewFollowers",
+		"loc-args": []interface{}{"2"},
+	}
+
 	expectedPayload := map[string]interface{}{
 		"aps": map[string]interface{}{
 			"alert":              expectedAlert,

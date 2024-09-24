@@ -139,7 +139,8 @@ func FollowChangePayload(followChange domain.FollowChangeBatch) ([]byte, error) 
 }
 
 func FollowChangePayloadWithValidation(followChange domain.FollowChangeBatch, validate bool) ([]byte, error) {
-	alertMessage := ""
+	alertObject := make(map[string]interface{})
+
 	totalNpubs := len(followChange.Follows)
 	if validate && totalNpubs > MAX_TOTAL_NPUBS {
 		return nil, errors.New("FollowChangeBatch for followee " + followChange.Followee.Hex() + " has too many npubs (" + fmt.Sprint(totalNpubs) + "). MAX_TOTAL_NPUBS is " + fmt.Sprint(MAX_TOTAL_NPUBS))
@@ -149,12 +150,14 @@ func FollowChangePayloadWithValidation(followChange domain.FollowChangeBatch, va
 
 	if singleChange {
 		if strings.HasPrefix(followChange.FriendlyFollower, "npub") {
-			alertMessage = "You have a new follower!"
+			alertObject["loc-key"] = "newFollower"
 		} else {
-			alertMessage = followChange.FriendlyFollower + " is a new follower!"
+			alertObject["loc-key"] = "namedNewFollower"
+			alertObject["loc-args"] = []interface{}{followChange.FriendlyFollower}
 		}
 	} else {
-		alertMessage = fmt.Sprintf("You have %d new followers!", len(followChange.Follows))
+		alertObject["loc-key"] = "xNewFollowers"
+		alertObject["loc-args"] = []interface{}{fmt.Sprint(len(followChange.Follows))}
 	}
 
 	followeeNpub, error := nip19.EncodePublicKey(followChange.Followee.Hex())
@@ -184,7 +187,7 @@ func FollowChangePayloadWithValidation(followChange domain.FollowChangeBatch, va
 
 	payload := map[string]interface{}{
 		"aps": map[string]interface{}{
-			"alert":              alertMessage,
+			"alert":              alertObject,
 			"sound":              "default",
 			"badge":              1,
 			"thread-id":          followeeNpub,
