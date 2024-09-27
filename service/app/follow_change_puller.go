@@ -55,7 +55,7 @@ func (f *FollowChangePuller) Run(ctx context.Context) error {
 			}
 
 			tokens, err := f.queries.GetTokens.Handle(ctx, followChangeAggregate.Followee)
-			if err != nil || len(tokens) == 0 {
+			if err != nil {
 				f.logger.Error().
 					WithField("followee", followChangeAggregate.Followee.Hex()).
 					WithError(err).
