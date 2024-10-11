@@ -7,9 +7,8 @@
 package di
 
 import (
-	"context"
-
 	firestore2 "cloud.google.com/go/firestore"
+	"context"
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/google/wire"
 	"github.com/planetary-social/go-notification-service/internal/logging"
@@ -86,6 +85,7 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 		return Service{}, nil, err
 	}
 	followChangePuller := app.NewFollowChangePuller(externalFollowChangeSubscriber, apnsAPNS, queries, logger, prometheusPrometheus)
+	vanishSubscriber := app.NewVanishSubscriber(transactionProvider, queries, logger)
 	receivedEventSubscriber := memorypubsub.NewReceivedEventSubscriber(receivedEventPubSub, saveReceivedEventHandler, logger)
 	subscriber, err := firestore.NewWatermillSubscriber(client, watermillAdapter)
 	if err != nil {
@@ -100,7 +100,7 @@ func BuildService(contextContext context.Context, configConfig config.Config) (S
 	}
 	processSavedEventHandler := app.NewProcessSavedEventHandler(transactionProvider, generator, apnsAPNS, logger, prometheusPrometheus, externalEventPublisher)
 	eventSavedSubscriber := firestorepubsub.NewEventSavedSubscriber(subscriber, processSavedEventHandler, prometheusPrometheus, logger)
-	service := NewService(application, server, metricsServer, downloader, followChangePuller, receivedEventSubscriber, externalFollowChangeSubscriber, eventSavedSubscriber, memoryEventWasAlreadySavedCache)
+	service := NewService(application, server, metricsServer, downloader, followChangePuller, vanishSubscriber, receivedEventSubscriber, externalFollowChangeSubscriber, eventSavedSubscriber, memoryEventWasAlreadySavedCache)
 	return service, func() {
 		cleanup()
 	}, nil
@@ -164,6 +164,7 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 		return IntegrationService{}, nil, err
 	}
 	followChangePuller := app.NewFollowChangePuller(externalFollowChangeSubscriber, apnsMock, queries, logger, prometheusPrometheus)
+	vanishSubscriber := app.NewVanishSubscriber(transactionProvider, queries, logger)
 	receivedEventSubscriber := memorypubsub.NewReceivedEventSubscriber(receivedEventPubSub, saveReceivedEventHandler, logger)
 	subscriber, err := firestore.NewWatermillSubscriber(client, watermillAdapter)
 	if err != nil {
@@ -178,7 +179,7 @@ func BuildIntegrationService(contextContext context.Context, configConfig config
 	}
 	processSavedEventHandler := app.NewProcessSavedEventHandler(transactionProvider, generator, apnsMock, logger, prometheusPrometheus, externalEventPublisher)
 	eventSavedSubscriber := firestorepubsub.NewEventSavedSubscriber(subscriber, processSavedEventHandler, prometheusPrometheus, logger)
-	service := NewService(application, server, metricsServer, downloader, followChangePuller, receivedEventSubscriber, externalFollowChangeSubscriber, eventSavedSubscriber, memoryEventWasAlreadySavedCache)
+	service := NewService(application, server, metricsServer, downloader, followChangePuller, vanishSubscriber, receivedEventSubscriber, externalFollowChangeSubscriber, eventSavedSubscriber, memoryEventWasAlreadySavedCache)
 	integrationService := IntegrationService{
 		Service:  service,
 		MockAPNS: apnsMock,
@@ -226,5 +227,7 @@ type buildTransactionFirestoreAdaptersDependencies struct {
 var downloaderSet = wire.NewSet(app.NewDownloader)
 
 var followChangePullerSet = wire.NewSet(app.NewFollowChangePuller)
+
+var vanishSubscriberSet = wire.NewSet(app.NewVanishSubscriber)
 
 var generatorSet = wire.NewSet(notifications.NewGenerator)

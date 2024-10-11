@@ -2,7 +2,7 @@
 ci: tools test lint generate fmt tidy check_repository_unchanged
 
 .PHONY: check_repository_unchanged
-check_repository_unchanged: 
+check_repository_unchanged:
 	_tools/check_repository_unchanged.sh
 
 .PHONY: generate
@@ -17,10 +17,10 @@ fmt:
 test:
 	go test -race ./...
 
-.PHONY: recreate-emulator
-recreate-emulator:
-	docker compose -f ./docker-compose-integration.yml rm -f -s -v
-	docker compose -f ./docker-compose-integration.yml up -d
+.PHONY: start-services
+start-services:
+	docker compose rm -f -s -v
+	docker compose up -d
 
 .PHONY: test-integration
 test-integration:

@@ -18,6 +18,7 @@ type Service struct {
 	metricsServer                  http.MetricsServer
 	downloader                     *app.Downloader
 	followChangePuller             *app.FollowChangePuller
+	vanishSubscriber               *app.VanishSubscriber
 	receivedEventSubscriber        *memorypubsub.ReceivedEventSubscriber
 	externalFollowChangeSubscriber app.ExternalFollowChangeSubscriber
 	eventSavedSubscriber           *firestorepubsub.EventSavedSubscriber
@@ -30,6 +31,7 @@ func NewService(
 	metricsServer http.MetricsServer,
 	downloader *app.Downloader,
 	followChangePuller *app.FollowChangePuller,
+	vanishSubscriber *app.VanishSubscriber,
 	receivedEventSubscriber *memorypubsub.ReceivedEventSubscriber,
 	externalFollowChangeSubscriber app.ExternalFollowChangeSubscriber,
 	eventSavedSubscriber *firestorepubsub.EventSavedSubscriber,
@@ -41,6 +43,7 @@ func NewService(
 		metricsServer:                  metricsServer,
 		downloader:                     downloader,
 		followChangePuller:             followChangePuller,
+		vanishSubscriber:               vanishSubscriber,
 		receivedEventSubscriber:        receivedEventSubscriber,
 		externalFollowChangeSubscriber: externalFollowChangeSubscriber,
 		eventSavedSubscriber:           eventSavedSubscriber,
@@ -79,8 +82,14 @@ func (s Service) Run(ctx context.Context) error {
 		errCh <- errors.Wrap(s.receivedEventSubscriber.Run(ctx), "received event subscriber error")
 	}()
 
+	runners++
 	go func() {
 		errCh <- errors.Wrap(s.followChangePuller.Run(ctx), "follow change subscriber error")
+	}()
+
+	runners++
+	go func() {
+		errCh <- errors.Wrap(s.vanishSubscriber.Run(ctx), "vanish subscriber error")
 	}()
 
 	runners++
