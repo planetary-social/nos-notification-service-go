@@ -7,8 +7,9 @@
 package di
 
 import (
-	firestore2 "cloud.google.com/go/firestore"
 	"context"
+
+	firestore2 "cloud.google.com/go/firestore"
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/google/wire"
 	"github.com/planetary-social/go-notification-service/internal/logging"

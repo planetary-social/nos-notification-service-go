@@ -16,6 +16,7 @@ require (
 	github.com/nbd-wtf/go-nostr v0.25.7
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.16.0
+	github.com/redis/go-redis/v9 v9.6.1
 	github.com/rs/zerolog v1.29.1
 	github.com/sideshow/apns2 v0.23.0
 	github.com/sirupsen/logrus v1.9.3
@@ -68,7 +69,6 @@ require (
 	github.com/prometheus/common v0.42.0 // indirect
 	github.com/prometheus/procfs v0.10.1 // indirect
 	github.com/puzpuzpuz/xsync/v2 v2.5.1 // indirect
-	github.com/redis/go-redis/v9 v9.6.1 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/tidwall/gjson v1.17.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
