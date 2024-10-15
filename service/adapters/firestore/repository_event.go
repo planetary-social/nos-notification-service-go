@@ -128,12 +128,16 @@ func (e *EventRepository) saveUnderEvents(event domain.Event) error {
 
 // DeleteByPublicKey deletes all events and associated notifications for a given public key.
 func (e *EventRepository) DeleteByPublicKey(ctx context.Context, pubkey domain.PublicKey) error {
+	notificationsToDelete := make(map[*firestore.DocumentRef][]*firestore.DocumentRef)
+
 	eventsQuery := e.client.Collection(collectionEvents).Where(eventFieldPublicKey, "==", pubkey.Hex())
+	eventsIter := eventsQuery.Documents(ctx)
 
-	eventsDocs := e.tx.Documents(eventsQuery)
-
+	// Collect event references and their associated notifications first to
+	// avoid mixing reads and writes in the same transaction and avoid the
+	// firestore error "read after write in transaction"
 	for {
-		eventDoc, err := eventsDocs.Next()
+		eventDoc, err := eventsIter.Next()
 		if err == iterator.Done {
 			break
 		}
@@ -142,23 +146,31 @@ func (e *EventRepository) DeleteByPublicKey(ctx context.Context, pubkey domain.P
 		}
 
 		notificationsCollection := eventDoc.Ref.Collection(collectionEventsNotifications)
-		notificationsDocs := e.tx.Documents(notificationsCollection)
+		notificationsIter := notificationsCollection.Documents(ctx)
 
+		var notificationRefs []*firestore.DocumentRef
 		for {
-			notificationDoc, err := notificationsDocs.Next()
+			notificationDoc, err := notificationsIter.Next()
 			if err == iterator.Done {
 				break
 			}
 			if err != nil {
 				return errors.Wrap(err, "error fetching notification document")
 			}
+			notificationRefs = append(notificationRefs, notificationDoc.Ref)
+		}
 
-			if err := e.tx.Delete(notificationDoc.Ref); err != nil {
+		notificationsToDelete[eventDoc.Ref] = notificationRefs
+	}
+
+	for eventRef, notificationRefs := range notificationsToDelete {
+		for _, notificationRef := range notificationRefs {
+			if err := e.tx.Delete(notificationRef); err != nil {
 				return errors.Wrap(err, "error deleting notification document")
 			}
 		}
 
-		if err := e.tx.Delete(eventDoc.Ref); err != nil {
+		if err := e.tx.Delete(eventRef); err != nil {
 			return errors.Wrap(err, "error deleting event document")
 		}
 	}
