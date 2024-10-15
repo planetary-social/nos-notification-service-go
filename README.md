@@ -124,10 +124,10 @@ You may not be able to build it using older compilers.
 You have two options when it comes to using Firestore: a local emulator using
 Docker or a real Firestore project that we setup for development.
 
-##### Using Firestore emulator
+##### Using Firestore emulator, nosrelay and Redis
 
 1. Start the docker daemon.
-2. Run `make recreate-emulator` to start the Firestore emulator using Docker compose.
+2. Run `make start-services` to start the Firestore emulator, nosrelay and Redis using Docker compose.
 3. Run the following command changing `NOTIFICATIONS_APNS_CERTIFICATE_PATH` and `NOTIFICATIONS_APNS_CERTIFICATE_PASSWORD`:
 
 ```
@@ -137,6 +137,7 @@ FIRESTORE_EMULATOR_HOST=localhost:8200 \
 NOTIFICATIONS_FIRESTORE_PROJECT_ID=test-project-id \
 NOTIFICATIONS_APNS_TOPIC=com.verse.Nos \
 NOTIFICATIONS_ENVIRONMENT=DEVELOPMENT \
+REDIS_URL=redis://localhost:6379 \
 go run ./cmd/notification-service
 ```
 
@@ -152,6 +153,7 @@ NOTIFICATIONS_FIRESTORE_CREDENTIALS_JSON_PATH="/path/to/your/credentials/file.js
 NOTIFICATIONS_FIRESTORE_PROJECT_ID="nos-notification-service-dev" \
 NOTIFICATIONS_APNS_TOPIC=com.verse.Nos \
 NOTIFICATIONS_ENVIRONMENT=DEVELOPMENT \
+REDIS_URL=redis://localhost:6379 \
 go run ./cmd/notification-service
 ```
 

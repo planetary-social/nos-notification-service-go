@@ -1,0 +1,26 @@
+services:
+  firestore_emulator:
+    platform: linux/amd64
+    image: mtlynch/firestore-emulator
+    environment:
+      - FIRESTORE_PROJECT_ID=test-project-id
+      - PORT=8200
+    ports:
+      - 8200:8200
+
+  redis:
+    platform: linux/amd64
+    image: redis:latest
+    ports:
+      - 6379:6379
+
+  relay:
+    platform: linux/amd64
+    image: ghcr.io/planetary-social/nosrelay:latest
+    ports:
+      - "7777:7777"
+    environment:
+      - RELAY_URL=wss://example.com
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis

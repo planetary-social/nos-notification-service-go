@@ -28,6 +28,7 @@ func BuildService(context.Context, config.Config) (Service, func(), error) {
 		loggingSet,
 		adaptersSet,
 		followChangePullerSet,
+		vanishSubscriberSet,
 	)
 	return Service{}, nil, nil
 }
@@ -49,6 +50,7 @@ func BuildIntegrationService(context.Context, config.Config) (IntegrationService
 		firestoreAdaptersSet,
 		downloaderSet,
 		followChangePullerSet,
+		vanishSubscriberSet,
 		generatorSet,
 		pubsubSet,
 		loggingSet,
@@ -78,6 +80,10 @@ var downloaderSet = wire.NewSet(
 
 var followChangePullerSet = wire.NewSet(
 	app.NewFollowChangePuller,
+)
+
+var vanishSubscriberSet = wire.NewSet(
+	app.NewVanishSubscriber,
 )
 
 var generatorSet = wire.NewSet(

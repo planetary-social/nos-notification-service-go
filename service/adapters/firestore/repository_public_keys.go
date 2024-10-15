@@ -49,6 +49,33 @@ func (r *PublicKeyRepository) Save(registration domain.Registration) error {
 	return nil
 }
 
+// DeleteByPublicKey deletes a public key and all its associated APNS tokens
+func (r *PublicKeyRepository) DeleteByPublicKey(ctx context.Context, publicKey domain.PublicKey) error {
+	pubKeyDocRef := r.client.Collection(collectionPublicKeys).Doc(publicKey.Hex())
+	apnsTokensCollection := pubKeyDocRef.Collection(collectionPublicKeysAPNSTokens)
+	apnsDocs := r.tx.Documents(apnsTokensCollection)
+
+	for {
+		doc, err := apnsDocs.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return errors.Wrap(err, "error fetching APNS token document")
+		}
+
+		if err := r.tx.Delete(doc.Ref); err != nil {
+			return errors.Wrap(err, "error deleting APNS token document")
+		}
+	}
+
+	if err := r.tx.Delete(pubKeyDocRef); err != nil {
+		return errors.Wrap(err, "error deleting the public key document")
+	}
+
+	return nil
+}
+
 func (r *PublicKeyRepository) GetAPNSTokens(ctx context.Context, publicKey domain.PublicKey, savedAfter time.Time) ([]domain.APNSToken, error) {
 	docs := r.tx.Documents(
 		r.client.

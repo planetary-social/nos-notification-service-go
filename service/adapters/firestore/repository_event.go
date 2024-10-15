@@ -126,6 +126,46 @@ func (e *EventRepository) saveUnderEvents(event domain.Event) error {
 	return nil
 }
 
+// DeleteByPublicKey deletes all events and associated notifications for a given public key.
+func (e *EventRepository) DeleteByPublicKey(ctx context.Context, pubkey domain.PublicKey) error {
+	eventsQuery := e.client.Collection(collectionEvents).Where(eventFieldPublicKey, "==", pubkey.Hex())
+
+	eventsDocs := e.tx.Documents(eventsQuery)
+
+	for {
+		eventDoc, err := eventsDocs.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return errors.Wrap(err, "error fetching event document")
+		}
+
+		notificationsCollection := eventDoc.Ref.Collection(collectionEventsNotifications)
+		notificationsDocs := e.tx.Documents(notificationsCollection)
+
+		for {
+			notificationDoc, err := notificationsDocs.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				return errors.Wrap(err, "error fetching notification document")
+			}
+
+			if err := e.tx.Delete(notificationDoc.Ref); err != nil {
+				return errors.Wrap(err, "error deleting notification document")
+			}
+		}
+
+		if err := e.tx.Delete(eventDoc.Ref); err != nil {
+			return errors.Wrap(err, "error deleting event document")
+		}
+	}
+
+	return nil
+}
+
 func (e *EventRepository) GetEvents(ctx context.Context, filters domain.Filters) <-chan app.EventOrError {
 	ch := make(chan app.EventOrError)
 	go e.getEvents(ctx, filters, ch)

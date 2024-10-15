@@ -32,11 +32,13 @@ type RelayRepository interface {
 }
 
 type PublicKeyRepository interface {
+	DeleteByPublicKey(ctx context.Context, publicKey domain.PublicKey) error
 	GetAPNSTokens(ctx context.Context, publicKey domain.PublicKey, savedAfter time.Time) ([]domain.APNSToken, error)
 }
 
 type EventRepository interface {
 	Save(event domain.Event) error
+	DeleteByPublicKey(ctx context.Context, publicKey domain.PublicKey) error
 	Get(ctx context.Context, id domain.EventId) (domain.Event, error)
 	Exists(ctx context.Context, id domain.EventId) (bool, error)
 	GetEvents(ctx context.Context, filters domain.Filters) <-chan EventOrError
