@@ -11,6 +11,10 @@ type Environment struct {
 	s string
 }
 
+func (e Environment) String() string {
+	return e.s
+}
+
 var (
 	EnvironmentProduction  = Environment{"production"}
 	EnvironmentDevelopment = Environment{"development"}

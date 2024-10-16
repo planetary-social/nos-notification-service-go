@@ -5,7 +5,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/boreq/errors"
 	"github.com/planetary-social/go-notification-service/internal/logging"
+	configadapters "github.com/planetary-social/go-notification-service/service/adapters/config"
 	"github.com/planetary-social/go-notification-service/service/domain"
 	"github.com/redis/go-redis/v9"
 )
@@ -42,8 +44,14 @@ func NewVanishSubscriber(
 
 // Processes messages from the vanish_requests stream and updates the last_id when done
 func (f *VanishSubscriber) Run(ctx context.Context) error {
+	cfg, err := configadapters.NewEnvironmentConfigLoader().Load()
+	if err != nil {
+		return errors.Wrap(err, "error creating a config")
+	}
+
+	envSuffix := cfg.Environment().String()
 	streamName := "vanish_requests"
-	lastProcessedIDKey := "vanish_requests:notification_service:last_id"
+	lastProcessedIDKey := "vanish_requests:notification_service:last_id:" + envSuffix
 
 	lastProcessedID, err := f.rdb.Get(ctx, lastProcessedIDKey).Result()
 	if err == redis.Nil {
