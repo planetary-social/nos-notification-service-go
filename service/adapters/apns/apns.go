@@ -116,8 +116,59 @@ func (a *APNS) SendFollowChangeNotification(followChange domain.FollowChangeBatc
 	return nil
 }
 
+func (a *APNS) SendSilentFollowChangeNotification(followChange domain.FollowChangeBatch, apnsToken domain.APNSToken) error {
+	if apnsToken.Hex() == "" {
+		return errors.New("invalid APNs token")
+	}
+	n, err := a.buildSilentFollowChangeNotification(followChange, apnsToken)
+	if err != nil {
+		return err
+	}
+	resp, err := a.client.Push(n)
+	//a.metrics.ReportCallToAPNS(resp.StatusCode, err)
+	if err != nil {
+		return errors.Wrap(err, "error pushing the silent follow change notification")
+	}
+
+	if resp.StatusCode == 200 {
+		a.logger.Debug().
+			WithField("uuid", n.ApnsID).
+			WithField("response.reason", resp.Reason).
+			WithField("response.statusCode", resp.StatusCode).
+			WithField("host", a.client.Host).
+			Message("sent a silent follow change notification")
+	} else {
+		a.logger.Error().
+			WithField("uuid", n.ApnsID).
+			WithField("response.reason", resp.Reason).
+			WithField("response.statusCode", resp.StatusCode).
+			WithField("host", a.client.Host).
+			Message("failed to send a silent follow change notification")
+	}
+
+	return nil
+}
+
 func (a *APNS) buildFollowChangeNotification(followChange domain.FollowChangeBatch, apnsToken domain.APNSToken) (*apns2.Notification, error) {
 	payload, err := FollowChangePayload(followChange)
+	if err != nil {
+		return nil, errors.Wrap(err, "error creating a payload")
+	}
+
+	n := &apns2.Notification{
+		PushType:    apns2.PushTypeAlert,
+		ApnsID:      uuid.New().String(),
+		DeviceToken: apnsToken.Hex(),
+		Topic:       a.cfg.APNSTopic(),
+		Payload:     payload,
+		Priority:    apns2.PriorityLow,
+	}
+
+	return n, nil
+}
+
+func (a *APNS) buildSilentFollowChangeNotification(followChange domain.FollowChangeBatch, apnsToken domain.APNSToken) (*apns2.Notification, error) {
+	payload, err := SilentFollowChangePayload(followChange)
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating a payload")
 	}
@@ -191,6 +242,53 @@ func FollowChangePayloadWithValidation(followChange domain.FollowChangeBatch, va
 			"sound":     "default",
 			"badge":     1,
 			"thread-id": followeeNpub,
+		},
+		"data": data,
+	}
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+
+	return payloadBytes, nil
+}
+
+func SilentFollowChangePayload(followChange domain.FollowChangeBatch) ([]byte, error) {
+	return SilentFollowChangePayloadWithValidation(followChange, true)
+}
+
+func SilentFollowChangePayloadWithValidation(followChange domain.FollowChangeBatch, validate bool) ([]byte, error) {
+	totalNpubs := len(followChange.Follows)
+	if validate && totalNpubs > MAX_TOTAL_NPUBS {
+		return nil, errors.New("FollowChangeBatch for followee " + followChange.Followee.Hex() + " has too many npubs (" + fmt.Sprint(totalNpubs) + "). MAX_TOTAL_NPUBS is " + fmt.Sprint(MAX_TOTAL_NPUBS))
+	}
+
+	singleChange := totalNpubs == 1
+
+	npubFollows, error := pubkeysToNpubs(followChange.Follows)
+	if error != nil {
+		return nil, errors.Wrap(error, "error encoding follow npubs")
+	}
+
+	// See https://developer.apple.com/documentation/usernotifications/generating-a-remote-notification
+
+	var data map[string]interface{}
+
+	if singleChange {
+		data = map[string]interface{}{
+			"follows":          npubFollows,
+			"friendlyFollower": followChange.FriendlyFollower,
+		}
+	} else {
+		data = map[string]interface{}{
+			"follows": npubFollows,
+		}
+	}
+
+	payload := map[string]interface{}{
+		"aps": map[string]interface{}{
+			"content-available": 1,
 		},
 		"data": data,
 	}

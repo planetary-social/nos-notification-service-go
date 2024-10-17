@@ -79,6 +79,15 @@ func (f *FollowChangePuller) Run(ctx context.Context) error {
 						Message("error sending follow change notification")
 					continue
 				}
+
+				if err := f.apns.SendSilentFollowChangeNotification(*followChangeAggregate, token); err != nil {
+					f.logger.Error().
+						WithField("token", token.Hex()).
+						WithField("followee", followChangeAggregate.Followee.Hex()).
+						WithError(err).
+						Message("error sending silent follow change notification")
+					continue
+				}
 			}
 
 			f.counter += 1
