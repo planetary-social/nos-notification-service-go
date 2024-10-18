@@ -41,6 +41,12 @@ func (a *APNSMock) SendFollowChangeNotification(followChange domain.FollowChange
 	return a.SendNotification(notification)
 }
 
+func (a *APNSMock) SendSilentFollowChangeNotification(followChange domain.FollowChangeBatch, token domain.APNSToken) error {
+	notification := notifications.Notification{}
+
+	return a.SendNotification(notification)
+}
+
 func (a *APNSMock) SentNotifications() []notifications.Notification {
 	a.sentNotificationsLock.Lock()
 	defer a.sentNotificationsLock.Unlock()

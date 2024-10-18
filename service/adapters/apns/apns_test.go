@@ -174,6 +174,34 @@ func TestFollowChangePayload_BatchedFollow_WithNoFriendlyFollower(t *testing.T) 
 
 	require.Equal(t, expectedPayload, actualPayload)
 }
+
+func TestSilentFollowChangePayload_BatchedFollow_WithNoFriendlyFollower(t *testing.T) {
+	pk1, _ := fixtures.PublicKeyAndNpub()
+	pk2, pk2Npub := fixtures.PublicKeyAndNpub()
+	pk3, pk3Npub := fixtures.PublicKeyAndNpub()
+
+	batch := domain.FollowChangeBatch{
+		Followee: pk1,
+		Follows:  []domain.PublicKey{pk2, pk3},
+	}
+
+	payload, err := apns.SilentFollowChangePayload(batch)
+	require.NoError(t, err)
+
+	expectedPayload := map[string]interface{}{
+		"aps": map[string]interface{}{
+			"content-available": float64(1),
+		},
+		"data": map[string]interface{}{
+			"follows": []interface{}{pk2Npub, pk3Npub},
+		},
+	}
+
+	var actualPayload map[string]interface{}
+	err = json.Unmarshal(payload, &actualPayload)
+	require.NoError(t, err)
+	require.Equal(t, expectedPayload, actualPayload)
+}
 func TestFollowChangePayload_Exceeds4096Bytes_With60TotalNpubs(t *testing.T) {
 	pk1, _ := fixtures.PublicKeyAndNpub()
 
